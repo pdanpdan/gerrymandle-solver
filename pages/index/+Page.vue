@@ -373,7 +373,7 @@ function dayInfo(day: number): DayInfo | null {
 <template>
   <div class="navbar bg-base-100 sticky top-0 z-10 shadow-sm">
     <div class="flex-1 text-xl mx-2">
-      Gerrymander Solver
+      Gerrymandle Solver
     </div>
     <div class="flex-none mx-2">
       <label class="select select-sm">
@@ -391,7 +391,7 @@ function dayInfo(day: number): DayInfo | null {
     <div class="hero-content text-center">
       <div class="max-w-xl">
         <h1 class="text-4xl font-bold">
-          Gerrymander Solver
+          Gerrymandle Solver
         </h1>
         <p class="py-4 text-base-content/80">
           Solve the daily

@@ -1,4 +1,4 @@
-# Gerrymander Solver
+# Gerrymandle Solver
 
 Solves the daily puzzles from [gerrymandle.com](https://gerrymandle.com): given
 the day's hex board, find a district map that wins the election for the target

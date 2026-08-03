@@ -4,8 +4,8 @@ import vike from 'vike/plugin';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  // Served from GitHub Pages under /gerrymander-solver/.
-  base: '/gerrymander-solver/',
+  // Served from GitHub Pages under /gerrymandle-solver/.
+  base: '/gerrymandle-solver/',
   plugins: [
     vike(),
     vue({

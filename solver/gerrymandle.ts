@@ -327,7 +327,7 @@ function printUsage() {
 Gerrymandle Hex-Districting Solver
 
 Usage:
-  node gerrymandle-solver.js [options] [target_url / target_origin]
+  pnpm solver -- [options] [target_url / target_origin]
 
 Options:
   -h, --help    Show this scannable usage manual.
@@ -339,11 +339,11 @@ Options:
   --debug       Print detailed solver progress (default: dots only).
 
 Examples:
-  node gerrymandle-solver.js
-  node gerrymandle-solver.js --best --time 10
-  node gerrymandle-solver.js https://gerrymandle.com/?date=2026-07-24
-  node gerrymandle-solver.js --all --time 15
-  node gerrymandle-solver.js --all http://localhost:3000
+  pnpm solver --
+  pnpm solver -- --best --time 10
+  pnpm solver -- https://gerrymandle.com/?date=2026-07-24
+  pnpm solver -- --all --time 15
+  pnpm solver -- --all http://localhost:3000
 `);
 }
 
