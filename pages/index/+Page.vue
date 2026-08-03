@@ -402,7 +402,7 @@ function dayInfo(day: number): DayInfo | null {
     </div>
   </section>
 
-  <main class="mx-auto max-w-6xl p-4 flex-1">
+  <main class="mx-auto max-w-6xl p-4 flex-1 w-full">
     <!-- Controls -->
     <div class="card bg-base-content/4 shadow-sm">
       <div class="card-body">
@@ -507,12 +507,12 @@ function dayInfo(day: number): DayInfo | null {
             Days
           </h2>
           <span id="list-view-label" class="sr-only">List view</span>
-          <form id="list-view-filter" class="filter" aria-labelledby="list-view-label" @reset="listView = 'all'">
+          <form id="list-view-filter" class="join" aria-labelledby="list-view-label">
             <input
               v-model="listView"
               type="radio"
               name="list-view"
-              class="btn btn-sm"
+              class="join-item btn btn-sm"
               value="all"
               aria-label="All"
             />
@@ -520,7 +520,7 @@ function dayInfo(day: number): DayInfo | null {
               v-model="listView"
               type="radio"
               name="list-view"
-              class="btn btn-sm"
+              class="join-item btn btn-sm"
               value="selected"
               aria-label="Selected"
             />
@@ -528,11 +528,10 @@ function dayInfo(day: number): DayInfo | null {
               v-model="listView"
               type="radio"
               name="list-view"
-              class="btn btn-sm"
+              class="join-item btn btn-sm"
               value="solved"
               aria-label="Solved"
             />
-            <input class="btn btn-sm btn-square filter-reset" type="reset" value="×" aria-label="Reset list view" />
           </form>
         </div>
 
