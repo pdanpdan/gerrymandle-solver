@@ -11,3 +11,10 @@
 html {
   scrollbar-gutter: stble;
 }
+
+#app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}

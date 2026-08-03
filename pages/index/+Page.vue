@@ -402,7 +402,7 @@ function dayInfo(day: number): DayInfo | null {
     </div>
   </section>
 
-  <main class="mx-auto max-w-6xl p-4">
+  <main class="mx-auto max-w-6xl p-4 flex-1">
     <!-- Controls -->
     <div class="card bg-base-content/4 shadow-sm">
       <div class="card-body">
