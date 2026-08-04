@@ -105,13 +105,14 @@ const filteredPuzzles = computed<PuzzleMeta[]>(() => {
 });
 
 const visiblePuzzles = computed<PuzzleMeta[]>(() => {
+  // Most recent day first in every view.
   switch (listView.value) {
     case 'selected':
-      return filteredPuzzles.value.filter((p) => selected.value.has(p.day));
+      return filteredPuzzles.value.filter((p) => selected.value.has(p.day)).reverse();
     case 'solved':
-      return filteredPuzzles.value.filter((p) => statuses[ p.day ]?.state === 'done');
+      return filteredPuzzles.value.filter((p) => statuses[ p.day ]?.state === 'done').reverse();
     default:
-      return filteredPuzzles.value;
+      return filteredPuzzles.value.slice().reverse();
   }
 });
 
@@ -337,8 +338,9 @@ function renderDay(day: number) {
   };
 }
 
-// All processed days (a won day is deselected but its result stays visible).
-const solvedDays = computed(() => Object.keys(results.value).map(Number).sort((a, b) => a - b));
+// All processed days, most recent first (a won day is deselected but its
+// result stays visible).
+const solvedDays = computed(() => Object.keys(results.value).map(Number).sort((a, b) => b - a));
 
 function setAllResults(open: boolean) {
   defaultOpen.value = open;
