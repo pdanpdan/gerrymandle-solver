@@ -178,6 +178,9 @@ function statusBadge(st: DayStatus): { cls: string; label: string; } {
   if (st.state === 'running') {
     return { cls: 'badge-info', label: 'running' };
   }
+  if (st.state === 'queued') {
+    return { cls: 'badge-neutral', label: 'queued' };
+  }
   return { cls: 'badge-error', label: 'failed' };
 }
 
