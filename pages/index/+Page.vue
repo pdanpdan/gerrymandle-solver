@@ -595,7 +595,7 @@ function dayInfo(day: number): DayInfo | null {
                   :disabled="solving"
                 />
                 <span class="grow tabular-nums">
-                  {{ p.date }} - Day {{ p.day }}
+                  {{ p.date }} · Day {{ p.day }}
                 </span>
                 <span
                   v-if="statuses[p.day]"
@@ -612,7 +612,7 @@ function dayInfo(day: number): DayInfo | null {
             <li />
           </ul>
 
-          <div v-if="pageCount > 1" class="join mt-3 justify-center">
+          <div v-if="pageCount > 1" class="join gap-0.5 mt-3 justify-center">
             <button
               class="join-item btn btn-sm"
               type="button"
