@@ -167,8 +167,19 @@ const TIME_LIMIT_MS = 30000;
 const ATTEMPTS_PER_DAY = 4;
 
 type DayStatus
-  = | { state: 'queued' | 'running' | 'done'; dots: number; }
+  = | { state: 'queued' | 'running' | 'done'; dots: number; won?: boolean; }
     | { state: 'failed'; dots: number; error: string; };
+
+function statusBadge(st: DayStatus): { cls: string; label: string; } {
+  if (st.state === 'done') {
+    // Solved: green when won, yellow when the solver could not win.
+    return st.won ? { cls: 'badge-success', label: 'Done' } : { cls: 'badge-warning', label: 'Failed' };
+  }
+  if (st.state === 'running') {
+    return { cls: 'badge-info', label: 'running' };
+  }
+  return { cls: 'badge-error', label: 'failed' };
+}
 
 const solving = ref(false);
 
@@ -260,7 +271,7 @@ async function solveSelected() {
         );
         if (result.partArray) {
           results.value[ day ] = { meta, partArray: result.partArray, wins: result.wins, isStrictWin: result.isStrictWin };
-          statuses[ day ] = { state: 'done', dots: 0 };
+          statuses[ day ] = { state: 'done', dots: 0, won: result.isStrictWin };
           if (defaultOpen.value) {
             openResults.add(day);
           } else {
@@ -576,13 +587,9 @@ function dayInfo(day: number): DayInfo | null {
                 <span
                   v-if="statuses[p.day]"
                   class="badge badge-sm self-end"
-                  :class="{
-                    'badge-info': statuses[p.day].state === 'running',
-                    'badge-success': statuses[p.day].state === 'done',
-                    'badge-error': statuses[p.day].state === 'failed',
-                  }"
+                  :class="statusBadge(statuses[p.day]).cls"
                 >
-                  {{ statuses[p.day].state }}
+                  {{ statusBadge(statuses[p.day]).label }}
                   <template v-if="statuses[p.day].state === 'running' && statuses[p.day].dots > 0">
                     · {{ statuses[p.day].dots }}
                   </template>
