@@ -187,7 +187,7 @@ function statusBadge(st: DayStatus): { cls: string; label: string; } {
     return { cls: 'badge-info', label: 'running' };
   }
   if (st.state === 'queued') {
-    return { cls: 'badge-neutral', label: 'queued' };
+    return { cls: 'badge-soft', label: 'queued' };
   }
   return { cls: 'badge-error', label: 'failed' };
 }
@@ -671,7 +671,7 @@ function dayInfo(day: number): DayInfo | null {
             @toggle="onResultToggle(day, $event)"
           >
             <summary class="collapse-title">
-              <span class="card-title text-sm">
+              <span class="card-title text-sm flex-wrap">
                 Day {{ day }}
                 <span class="ml-1 text-sm font-normal text-base-content/60">{{ results[day]?.meta.date }}</span>
                 <template v-if="dayInfo(day)">
@@ -690,7 +690,7 @@ function dayInfo(day: number): DayInfo | null {
                 </template>
                 <span
                   v-if="results[day]"
-                  class="badge badge-sm"
+                  class="badge badge-sm text-nowrap"
                   :class="results[day].isStrictWin ? 'badge-success' : 'badge-warning'"
                 >
                   {{ results[day].isStrictWin ? 'WINS' : 'tie/lost' }} · {{ results[day].wins }} districts
