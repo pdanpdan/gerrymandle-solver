@@ -433,31 +433,33 @@ function dayInfo(day: number): DayInfo | null {
             />
           </div>
           <div class="flex flex-wrap gap-2">
-            <button
-              class="btn btn-sm"
-              type="button"
-              :disabled="controlsDisabled || filteredPuzzles.length === 0"
-              @click="selectAllFiltered"
-            >
-              Select all ({{ filteredPuzzles.length }})
-            </button>
-            <button
-              class="btn btn-sm"
-              type="button"
-              :disabled="controlsDisabled"
-              @click="deselectAllFiltered"
-            >
-              Deselect all
-            </button>
-            <button
-              class="btn btn-sm"
-              type="button"
-              popovertarget="selection-menu"
-              style="anchor-name:--selection-menu"
-              :disabled="controlsDisabled || filteredPuzzles.length === 0"
-            >
-              More
-            </button>
+            <div class="join gap-0.5">
+              <button
+                class="join-item btn btn-sm"
+                type="button"
+                :disabled="controlsDisabled || filteredPuzzles.length === 0"
+                @click="selectAllFiltered"
+              >
+                Select all ({{ filteredPuzzles.length }})
+              </button>
+              <button
+                class="join-item btn btn-sm"
+                type="button"
+                :disabled="controlsDisabled"
+                @click="deselectAllFiltered"
+              >
+                Deselect all
+              </button>
+              <button
+                class="join-item btn btn-sm"
+                type="button"
+                popovertarget="selection-menu"
+                style="anchor-name:--selection-menu"
+                :disabled="controlsDisabled || filteredPuzzles.length === 0"
+              >
+                More
+              </button>
+            </div>
             <ul
               id="selection-menu"
               class="dropdown dropdown-end menu bg-base-200 rounded-box p-2 mt-1 shadow-sm"
@@ -482,7 +484,7 @@ function dayInfo(day: number): DayInfo | null {
             </ul>
             <div class="tooltip tooltip-top tooltip-end" data-tip="Solves each selected day in your browser (parallel attempts)">
               <button
-                class="btn btn-sm btn-primary"
+                class="btn btn-sm btn-primary min-w-30"
                 type="button"
                 :disabled="controlsDisabled || totalSelected === 0"
                 @click="onSolveClick"
@@ -518,7 +520,7 @@ function dayInfo(day: number): DayInfo | null {
             Days
           </h2>
           <span id="list-view-label" class="sr-only">List view</span>
-          <form id="list-view-filter" class="join" aria-labelledby="list-view-label">
+          <form id="list-view-filter" class="join gap-0.5" aria-labelledby="list-view-label">
             <input
               v-model="listView"
               type="radio"
