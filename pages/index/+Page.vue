@@ -576,7 +576,7 @@ function dayInfo(day: number): DayInfo | null {
           <p v-if="filteredPuzzles.length === 0" class="text-sm text-base-content/70">
             No days match the filter.
           </p>
-          <ul v-else class="list gap-1 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <ul v-else class="list gap-1 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             <li v-for="p in pagedPuzzles" :key="p.day" class="list-row">
               <label class="label flex list-col-grow gap-3 rounded-box px-2 py-1.5 hover:bg-base-content/8">
                 <input
