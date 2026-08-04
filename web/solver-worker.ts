@@ -12,7 +12,7 @@ import { solve } from '../solver/recom-solver.ts';
 export interface SolveRequest {
   payload: PuzzlePayload;
   timeLimitMs: number;
-  seed: number;
+  seed?: number;
 }
 
 export interface SolveResult {

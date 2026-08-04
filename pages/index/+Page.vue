@@ -160,10 +160,10 @@ function selectUnsolvedFiltered() {
 // ---------------------------------------------------------------------------
 // Solving
 // ---------------------------------------------------------------------------
-// Hard puzzles (tie-district cases like day 30) need ~30s per attempt with
-// the default seed; typical days finish far sooner. Each day races several
-// parallel attempts (fresh randomness each), so wall time stays ~30s.
-const TIME_LIMIT_MS = 30000;
+// Hard puzzles (tie-district cases like days 26/30/51) need up to ~60s per
+// attempt; typical days finish far sooner. Each day races several parallel
+// attempts with the CLI-proven seed sequence, so wall time stays ~60s.
+const TIME_LIMIT_MS = 60000;
 const ATTEMPTS_PER_DAY = 4;
 
 type DayStatus
@@ -265,7 +265,7 @@ async function solveSelected() {
         const result = await runSolve(
           // toRaw: the ref stores payloads as reactive proxies, which
           // structuredClone (worker postMessage) refuses to serialize.
-          { payload: toRaw(meta.payload), timeLimitMs: TIME_LIMIT_MS, seed: day },
+          { payload: toRaw(meta.payload), timeLimitMs: TIME_LIMIT_MS },
           ATTEMPTS_PER_DAY,
           () => { statuses[ day ].dots++; },
         );
