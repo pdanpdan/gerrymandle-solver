@@ -212,7 +212,8 @@ function showToast(message: string) {
 }
 const results = ref<Record<number, { meta: PuzzleMeta; partArray: Array<number | null>; wins: number; isStrictWin: boolean; }>>({});
 
-const selectedDays = computed(() => [ ...selected.value ].sort((a, b) => a - b));
+// Most recent day first, so solves start with the latest puzzle.
+const selectedDays = computed(() => [ ...selected.value ].sort((a, b) => b - a));
 const totalSelected = computed(() => selectedDays.value.length);
 // Days of the current solve run — stable even though won days get
 // deselected (and thus leave selectedDays) while the run is in flight.
