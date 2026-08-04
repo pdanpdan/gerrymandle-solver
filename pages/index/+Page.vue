@@ -115,6 +115,14 @@ const visiblePuzzles = computed<PuzzleMeta[]>(() => {
   }
 });
 
+// Empty-list message depends on which view is active.
+const emptyListMessage = computed(() => {
+  if (filteredPuzzles.value.length === 0) {
+    return 'No days match the filter.';
+  }
+  return listView.value === 'selected' ? 'No days selected yet.' : 'No solved days yet.';
+});
+
 const pageCount = computed(() => Math.max(1, Math.ceil(visiblePuzzles.value.length / PAGE_SIZE)));
 const pageNumbers = computed(() => Array.from({ length: pageCount.value }, (_, i) => i + 1));
 const pagedPuzzles = computed(() => visiblePuzzles.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE));
@@ -573,8 +581,8 @@ function dayInfo(day: number): DayInfo | null {
         </div>
 
         <template v-else>
-          <p v-if="filteredPuzzles.length === 0" class="text-sm text-base-content/70">
-            No days match the filter.
+          <p v-if="visiblePuzzles.length === 0" class="text-sm text-base-content/70">
+            {{ emptyListMessage }}
           </p>
           <ul v-else class="list gap-1 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             <li v-for="p in pagedPuzzles" :key="p.day" class="list-row">
