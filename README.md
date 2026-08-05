@@ -28,6 +28,8 @@ page and deployed to GitHub Pages:
 
 - pick the days you missed, press **Solve**, and compare the site's solution
   with the solver's map side by side
+- won days are stored in localStorage: they stay marked as solved and their solution is re-rendered when you come back
+- each solution SVG can be downloaded in the exact format the CLI writes (same bytes and `<date>_<day>_best|solv_<wins>_<districts>.svg` naming)
 - light/dark/system themes
 - runs entirely client-side in Web Workers — no server
 

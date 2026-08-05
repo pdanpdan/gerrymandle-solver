@@ -4,7 +4,7 @@ import type { ThemeMode } from '../../web/theme';
 
 import { computed, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue';
 
-import { extract, PALETTE, partyName, renderSVG, scorePartition } from '../../solver/puzzle-utils';
+import { extract, fileStem, PALETTE, partyName, renderSVG, scorePartition } from '../../solver/puzzle-utils';
 import { loadAllPuzzles } from '../../web/puzzle-list';
 import { runSolve } from '../../web/solver';
 import { DAISYUI_THEME } from '../../web/theme';
@@ -76,6 +76,7 @@ async function reloadPuzzles() {
   puzzlesError.value = null;
   try {
     puzzles.value = await loadAllPuzzles();
+    restoreSolved();
   } catch (err) {
     puzzlesError.value = err instanceof Error ? err.message : String(err);
   } finally {
@@ -238,6 +239,10 @@ interface RenderedDay {
   partArray: Array<number | null> | null; // result version this SVG was built from
   bestSvg: string;
   solvedSvg: string | null;
+  bestFileSvg: string; // CLI-identical SVG for download
+  solvedFileSvg: string | null;
+  bestFileName: string;
+  solvedFileName: string | null;
   playerName: string;
   bestScored: ReturnType<typeof scorePartition>;
   solvedScored: ReturnType<typeof scorePartition> | null;
@@ -249,6 +254,70 @@ const rendered = reactive<Record<number, RenderedDay>>({});
 const openResults = reactive(new Set<number>());
 // Remember the last Expand/Collapse-all action; new results follow it.
 const defaultOpen = ref(true);
+
+// ---------------------------------------------------------------------------
+// Won-solve persistence (localStorage)
+// ---------------------------------------------------------------------------
+// Only strict wins are stored — their status (Done) and solution survive
+// reloads so the list can mark them solved and re-render the result.
+const SOLVED_KEY = 'gerry-solved';
+
+interface StoredSolve {
+  partArray: Array<number | null>;
+  wins: number;
+}
+
+const solvedStore = reactive<Record<number, StoredSolve>>({});
+
+function saveSolves() {
+  try {
+    localStorage.setItem(SOLVED_KEY, JSON.stringify(solvedStore));
+  } catch {
+    // Storage unavailable (private mode, quota): wins just aren't persisted.
+  }
+}
+
+function loadSolves(): Record<number, StoredSolve> {
+  try {
+    const raw = localStorage.getItem(SOLVED_KEY);
+    if (!raw) {
+      return {};
+    }
+    const out: Record<number, StoredSolve> = {};
+    // Tolerate a stale/corrupt entry (old shape, hand-edited value) instead
+    // of crashing the page; invalid days are skipped.
+    for (const [ key, value ] of Object.entries(JSON.parse(raw) as Record<string, unknown>)) {
+      const day = Number(key);
+      const entry = value as StoredSolve | null;
+      if (Number.isInteger(day) && day > 0 && Array.isArray(entry?.partArray) && Number.isInteger(entry?.wins)) {
+        out[ day ] = { partArray: entry.partArray, wins: entry.wins };
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+// Replay stored wins onto the (re)loaded puzzle list: mark the day as
+// solved, restore its result entry so the solution SVG renders, and
+// deselect it exactly like a fresh solve does.
+function restoreSolved() {
+  for (const [ dayStr, stored ] of Object.entries(loadSolves())) {
+    const day = Number(dayStr);
+    const meta = puzzles.value.find((p) => p.day === day);
+    if (!meta) {
+      continue;
+    }
+    statuses[ day ] = { state: 'done', dots: 0, won: true };
+    results.value[ day ] = { meta, partArray: stored.partArray, wins: stored.wins, isStrictWin: true };
+    selected.value.delete(day);
+    solvedStore[ day ] = stored;
+    if (defaultOpen.value) {
+      openResults.add(day);
+    }
+  }
+}
 
 async function solveSelected() {
   const days = selectedDays.value;
@@ -294,6 +363,9 @@ async function solveSelected() {
           // re-solve it; tied/lost days stay selected for retry.
           if (result.isStrictWin) {
             selected.value.delete(day);
+            // Remember the win (status + solution) so it survives reloads.
+            solvedStore[ day ] = { partArray: result.partArray, wins: result.wins };
+            saveSolves();
           }
         } else {
           statuses[ day ] = { state: 'failed', dots: 0, error: 'No solution found' };
@@ -320,7 +392,9 @@ function renderDay(day: number) {
   if (rendered[ day ] && rendered[ day ].partArray === entry.partArray) {
     return;
   }
-  const puzzle = extract({ payload: entry.meta.payload });
+  // number/date feed the CLI-style header ("Day 083 (2026-08-01) ...") that
+  // renderSVG emits when a title is given; extract() defaults them to 0/''.
+  const puzzle = extract({ payload: entry.meta.payload, number: entry.meta.day, date: entry.meta.date });
   const playerName = partyName(puzzle.playerParty, puzzle);
   const bestScored = scorePartition(puzzle.optimumPartition, puzzle);
   const solvedScored = entry.partArray ? scorePartition(entry.partArray, puzzle) : null;
@@ -332,6 +406,28 @@ function renderDay(day: number) {
     bestSvg: renderSVG(puzzle, puzzle.optimumPartition, null, bestScored, { web: true }),
     solvedSvg: solvedScored
       ? renderSVG(puzzle, entry.partArray, null, solvedScored, { web: true })
+      : null,
+    // Download versions replicate the CLI output byte-for-byte: same title,
+    // scored summary, and explicit (non-web) colors.
+    bestFileSvg: renderSVG(
+      puzzle,
+      puzzle.optimumPartition,
+      `Day ${ day } - best: ${ playerName } ${ bestScored.wins }/${ puzzle.regionCount }`,
+      bestScored,
+    ),
+    solvedFileSvg: solvedScored
+      ? renderSVG(
+        puzzle,
+        entry.partArray,
+        `Day ${ day } - solv: ${ playerName } ${ solvedScored.wins }/${ puzzle.regionCount }`,
+        solvedScored,
+      )
+      : null,
+    // Same naming schema as the CLI:
+    // solutions/<date>_<day>_best|solv_<wins>_<districts>.svg
+    bestFileName: `${ fileStem(entry.meta.date, day, bestScored.wins, puzzle.regionCount, 'best') }.svg`,
+    solvedFileName: solvedScored
+      ? `${ fileStem(entry.meta.date, day, solvedScored.wins, puzzle.regionCount, 'solv') }.svg`
       : null,
     playerName,
     bestScored,
@@ -360,6 +456,25 @@ function onResultToggle(day: number, e: Event) {
     openResults.add(day);
   } else {
     openResults.delete(day);
+  }
+}
+
+// Save an SVG as a file download, byte-for-byte the same string the CLI
+// writes into solutions/.
+function downloadSvg(fileName: string, svg: string) {
+  const blob = new Blob([ svg ], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadSolvedSvg(day: number) {
+  const r = rendered[ day ];
+  if (r?.solvedFileName && r.solvedFileSvg) {
+    downloadSvg(r.solvedFileName, r.solvedFileSvg);
   }
 }
 
@@ -703,15 +818,32 @@ function dayInfo(day: number): DayInfo | null {
             <div class="collapse-content" @vue:mounted="renderDay(day)" @vue:updated="renderDay(day)">
               <div v-if="rendered[day]" class="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <figure class="flex flex-col rounded-box bg-base-content/4">
-                  <figcaption class="font-bold mt-2">
-                    Site solution ({{ rendered[day].bestScored.wins }} wins)
+                  <figcaption class="font-bold mt-2 flex items-center justify-between gap-2 px-2">
+                    <span>Site solution ({{ rendered[day].bestScored.wins }} wins)</span>
+                    <button
+                      type="button"
+                      class="btn btn-xs"
+                      :aria-label="`Download day ${ day } site solution SVG`"
+                      @click="downloadSvg(rendered[day].bestFileName, rendered[day].bestFileSvg)"
+                    >
+                      Download SVG
+                    </button>
                   </figcaption>
                   <div class="overflow-x-auto w-full" v-html="rendered[day].bestSvg" />
                 </figure>
 
                 <figure class="flex flex-col rounded-box bg-base-content/4">
-                  <figcaption class="font-bold mt-2">
-                    Solved ({{ rendered[day].solvedScored?.wins ?? 0 }} wins)
+                  <figcaption class="font-bold mt-2 flex items-center justify-between gap-2 px-2">
+                    <span>Solved ({{ rendered[day].solvedScored?.wins ?? 0 }} wins)</span>
+                    <button
+                      v-if="rendered[day].solvedFileName"
+                      type="button"
+                      class="btn btn-xs"
+                      :aria-label="`Download day ${ day } solution SVG`"
+                      @click="downloadSolvedSvg(day)"
+                    >
+                      Download SVG
+                    </button>
                   </figcaption>
                   <div v-if="rendered[day].solvedSvg" class="overflow-x-auto w-full" v-html="rendered[day].solvedSvg" />
                   <p v-else class="text-sm text-base-content/70">
