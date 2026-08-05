@@ -89,7 +89,7 @@ const selected = ref<Set<number>>(new Set());
 const statuses = reactive<Record<number, DayStatus>>({});
 const page = ref(1);
 const PAGE_SIZE = 12;
-type ListView = 'all' | 'selected' | 'solved';
+type ListView = 'all' | 'selected' | 'solved' | 'unsolved';
 const listView = ref<ListView>('all');
 
 const filteredPuzzles = computed<PuzzleMeta[]>(() => {
@@ -105,6 +105,13 @@ const filteredPuzzles = computed<PuzzleMeta[]>(() => {
   return puzzles.value.filter((p) => (byDay ? byDay(p) : false) || byDate(p));
 });
 
+// Days in the current filter with no winning solution yet: never tried (no
+// status) or failed. Tied/lost days count as processed and are left alone.
+const unsolvedFiltered = computed(() => filteredPuzzles.value.filter((p) => {
+  const st = statuses[ p.day ];
+  return !st || st.state === 'failed';
+}));
+
 const visiblePuzzles = computed<PuzzleMeta[]>(() => {
   // Most recent day first in every view.
   switch (listView.value) {
@@ -112,6 +119,8 @@ const visiblePuzzles = computed<PuzzleMeta[]>(() => {
       return filteredPuzzles.value.filter((p) => selected.value.has(p.day)).reverse();
     case 'solved':
       return filteredPuzzles.value.filter((p) => statuses[ p.day ]?.state === 'done').reverse();
+    case 'unsolved':
+      return filteredPuzzles.value.filter((p) => !statuses[ p.day ] || statuses[ p.day ].state === 'failed').reverse();
     default:
       return filteredPuzzles.value.slice().reverse();
   }
@@ -122,7 +131,10 @@ const emptyListMessage = computed(() => {
   if (filteredPuzzles.value.length === 0) {
     return 'No days match the filter.';
   }
-  return listView.value === 'selected' ? 'No days selected yet.' : 'No solved days yet.';
+  if (listView.value === 'selected') {
+    return 'No days selected yet.';
+  }
+  return listView.value === 'unsolved' ? 'No unsolved days yet.' : 'No solved days yet.';
 });
 
 const pageCount = computed(() => Math.max(1, Math.ceil(visiblePuzzles.value.length / PAGE_SIZE)));
@@ -140,31 +152,16 @@ function selectAllFiltered() {
   }
 }
 
-function deselectAllFiltered() {
-  for (const p of filteredPuzzles.value) {
-    selected.value.delete(p.day);
-  }
-}
-
-function invertSelection() {
-  for (const p of filteredPuzzles.value) {
-    if (selected.value.has(p.day)) {
-      selected.value.delete(p.day);
-    } else {
-      selected.value.add(p.day);
-    }
-  }
-}
-
 // Select days that have not been solved yet: never tried (no status) or
 // failed. Tied/lost days count as processed and are left alone.
 function selectUnsolvedFiltered() {
-  for (const p of filteredPuzzles.value) {
-    const st = statuses[ p.day ];
-    if (!st || st.state === 'failed') {
-      selected.value.add(p.day);
-    }
+  for (const p of unsolvedFiltered.value) {
+    selected.value.add(p.day);
   }
+}
+
+function clearSelection() {
+  selected.value.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -566,51 +563,28 @@ function dayInfo(day: number): DayInfo | null {
               <button
                 class="join-item btn btn-sm"
                 type="button"
+                :disabled="controlsDisabled || unsolvedFiltered.length === 0"
+                @click="selectUnsolvedFiltered"
+              >
+                Select unsolved ({{ unsolvedFiltered.length }})
+              </button>
+              <button
+                class="join-item btn btn-sm"
+                type="button"
                 :disabled="controlsDisabled || filteredPuzzles.length === 0"
                 @click="selectAllFiltered"
               >
-                Select all ({{ filteredPuzzles.length }})
+                Select all
               </button>
               <button
                 class="join-item btn btn-sm"
                 type="button"
-                :disabled="controlsDisabled"
-                @click="deselectAllFiltered"
+                :disabled="controlsDisabled || totalSelected === 0"
+                @click="clearSelection"
               >
                 Deselect all
               </button>
-              <button
-                class="join-item btn btn-sm"
-                type="button"
-                popovertarget="selection-menu"
-                style="anchor-name:--selection-menu"
-                :disabled="controlsDisabled || filteredPuzzles.length === 0"
-              >
-                More
-              </button>
             </div>
-            <ul
-              id="selection-menu"
-              class="dropdown dropdown-end menu bg-base-200 rounded-box p-2 mt-1 shadow-sm"
-              popover
-              style="position-anchor:--selection-menu"
-            >
-              <li>
-                <button type="button" :disabled="solving" @click="selectUnsolvedFiltered">
-                  Select unsolved
-                </button>
-              </li>
-              <li>
-                <button type="button" :disabled="solving" @click="invertSelection">
-                  Invert selection
-                </button>
-              </li>
-              <li>
-                <button type="button" :disabled="solving" @click="deselectAllFiltered">
-                  Clear selection
-                </button>
-              </li>
-            </ul>
             <div class="tooltip tooltip-top tooltip-end" data-tip="Solves each selected day in your browser (parallel attempts)">
               <button
                 class="btn btn-sm btn-primary min-w-30"
@@ -673,6 +647,14 @@ function dayInfo(day: number): DayInfo | null {
               class="join-item btn btn-sm"
               value="solved"
               aria-label="Solved"
+            />
+            <input
+              v-model="listView"
+              type="radio"
+              name="list-view"
+              class="join-item btn btn-sm"
+              value="unsolved"
+              aria-label="Unsolved"
             />
           </form>
         </div>
