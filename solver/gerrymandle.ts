@@ -91,8 +91,15 @@ async function solve(puzzle: Puzzle, timeLimitMs: number = DEFAULT_TIME_LIMIT_MS
         if (!settled) {
           const isValid = msg && msg.partArray && msg.isStrictWin;
           if (isValid && msg.wins >= target) {
-            // Found target win — return immediately
+            // Found target win — return immediately and stop the other
+            // workers; otherwise they keep reporting progress dots and hold
+            // the process open until their full time slice is up.
             settled = true;
+            for (const other of workers) {
+              if (other !== w) {
+                other.terminate();
+              }
+            }
             resolve(msg);
           } else if (bestMode && isValid) {
             // Sub-target strict win — store best, don't settle (let other workers compete)
@@ -182,7 +189,7 @@ async function solvePuzzle(url: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, q
   log(`  Day ${ puzzle.day }  (${ puzzle.date })`);
   log(`  API: ${ api }`);
   log('='.repeat(60));
-  log(`  Win the election for: ${ playerName.toUpperCase() } (party ${ puzzle.playerParty })`);
+  log(`  Win the election for: ${ playerName.toUpperCase() } (party ${ puzzle.playerParty + 1 })`);
   log(`  Draw ${ puzzle.regionCount } districts of ${ puzzle.housesPerDistrict } populated tiles each`);
   log(`  Board: ${ puzzle.width }x${ puzzle.height }, ${ puzzle.tiles.size } tiles, ${ puzzle.houses } houses`);
   const partyBreak: Record<number, number> = {};

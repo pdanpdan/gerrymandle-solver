@@ -396,7 +396,29 @@ export function siteStyleSolve(
     return seen.size === list.length - 1;
   }
 
-  // Greedy hill climb: repeatedly apply the best improving transfer.
+  // Swap two boundary houses of different parties between adjacent regions.
+  // Transfers change district sizes, so turning an opponent-won district into
+  // a tie needs a detour through an unbalanced state that the greedy climb
+  // refuses.  An atomic exchange keeps both sizes fixed while changing the
+  // compositions — the missing move for "one player win, everything else
+  // tied" puzzles (e.g. day 91).  Returns a new state or null if either
+  // region would be disconnected.
+  function trySwap(st: SolverState, t1: number, o: number, s: number, t2: number): SolverState | null {
+    if (!canTransfer(st, t1, o, s)) {
+      return null;
+    }
+    const mid = applyTransfer(st, t1, o, s);
+    if (!canTransfer(mid, t2, s, o)) {
+      return null;
+    }
+    // t2 must still touch o after t1 left it, otherwise o would be split.
+    if (!(adj.get(t2) || []).some((v) => mid.partition[ v ] === o)) {
+      return null;
+    }
+    return applyTransfer(mid, t2, s, o);
+  }
+
+  // Greedy hill climb: repeatedly apply the best improving transfer or swap.
   function climb(st: SolverState): SolverState {
     let improved = true;
     while (improved) {
@@ -415,6 +437,38 @@ export function siteStyleSolve(
             const cand = applyTransfer(st, t, o, s);
             if (better(cand, st) && (!bestSt || better(cand, bestSt))) {
               bestSt = cand;
+            }
+          }
+        }
+        // Swaps: exchange t with an opposite-party boundary house of the
+        // neighbouring region.  Only houses matter — empty-tile exchanges
+        // change sizes and are already covered by plain transfers.
+        const tt = puzzle.tiles.get(t);
+        if (tt && tt.party !== null) {
+          for (const n of (adj.get(t) || [])) {
+            const s = st.partition[ n ];
+            if (s < 0 || s === o) {
+              continue;
+            }
+            for (const u of st.regionTiles[ s ]) {
+              const tu = puzzle.tiles.get(u);
+              if (!tu || tu.party === null || tu.party === tt.party) {
+                continue;
+              }
+              let onBoundary = false;
+              for (const v of (adj.get(u) || [])) {
+                if (st.partition[ v ] === o) {
+                  onBoundary = true;
+                  break;
+                }
+              }
+              if (!onBoundary) {
+                continue;
+              }
+              const cand = trySwap(st, t, o, s, u);
+              if (cand && better(cand, st) && (!bestSt || better(cand, bestSt))) {
+                bestSt = cand;
+              }
             }
           }
         }
@@ -488,24 +542,52 @@ export function siteStyleSolve(
     // bonus per tie.  (States track per-district winners; null = tie.)
     const tieCount = (state: SolverState): number => state.winners.filter((w) => w === null).length;
     const softScore = (dev: number, wins: number, oppMax: number, ties: number): number =>
-      dev * 3000 + (wins <= oppMax ? 12000 : 0) + oppMax * 400 - wins * 1500 - ties * 700;
+      dev * 3000 + (wins <= oppMax ? 12000 : 0) + oppMax * 400 - wins * 1500 - ties * 1500;
     let curTies = tieCount(cur);
     while (Date.now() < softDeadline) {
       iter++;
-      const t = tiles[ Math.floor(rng() * tiles.length) ];
-      const o = cur.partition[ t ];
-      if (o < 0) {
-        continue;
+      let cand: SolverState | null = null;
+      // Swap moves rebalance compositions without touching sizes — the walk
+      // can trade houses between adjacent districts (e.g. breaking an
+      // opponent's thin win into a tie) without paying the dev penalty that
+      // blocks single transfers.
+      if (rng() < 0.35) {
+        const t = tiles[ Math.floor(rng() * tiles.length) ];
+        const o = cur.partition[ t ];
+        const tt = puzzle.tiles.get(t);
+        if (o >= 0 && tt && tt.party !== null) {
+          const sRegs = [ ...new Set((adj.get(t) || []).map((n) => cur.partition[ n ]).filter((r) => r >= 0 && r !== o)) ];
+          if (sRegs.length > 0) {
+            const s = sRegs[ Math.floor(rng() * sRegs.length) ];
+            const candidates = cur.regionTiles[ s ].filter((u) => {
+              const tu = puzzle.tiles.get(u);
+              if (!tu || tu.party === null || tu.party === tt.party) {
+                return false;
+              }
+              return (adj.get(u) || []).some((v) => cur.partition[ v ] === o);
+            });
+            if (candidates.length > 0) {
+              cand = trySwap(cur, t, o, s, candidates[ Math.floor(rng() * candidates.length) ]);
+            }
+          }
+        }
       }
-      const nbs = (adj.get(t) || []).filter((n) => cur.partition[ n ] >= 0 && cur.partition[ n ] !== o);
-      if (nbs.length === 0) {
-        continue;
+      if (cand === null) {
+        const t = tiles[ Math.floor(rng() * tiles.length) ];
+        const o = cur.partition[ t ];
+        if (o < 0) {
+          continue;
+        }
+        const nbs = (adj.get(t) || []).filter((n) => cur.partition[ n ] >= 0 && cur.partition[ n ] !== o);
+        if (nbs.length === 0) {
+          continue;
+        }
+        const s = cur.partition[ nbs[ Math.floor(rng() * nbs.length) ] ];
+        if (!canTransfer(cur, t, o, s)) {
+          continue;
+        }
+        cand = applyTransfer(cur, t, o, s);
       }
-      const s = cur.partition[ nbs[ Math.floor(rng() * nbs.length) ] ];
-      if (!canTransfer(cur, t, o, s)) {
-        continue;
-      }
-      const cand = applyTransfer(cur, t, o, s);
       const candTies = tieCount(cand);
       const oldS = softScore(curDev, cur.wins, cur.oppMaxWins, curTies);
       const newS = softScore(cand.dev, cand.wins, cand.oppMaxWins, candTies);
@@ -522,7 +604,7 @@ export function siteStyleSolve(
     return bestWonState;
   }
 
-  // Random mutations: `count` random valid transfers, score-agnostic.
+  // Random mutations: `count` random valid transfers or swaps, score-agnostic.
   function mutate(st: SolverState, count: number): SolverState {
     let out = st;
     for (let m = 0; m < count; m++) {
@@ -535,10 +617,31 @@ export function siteStyleSolve(
           continue;
         }
         const s = out.partition[ neighbors[ Math.floor(rand() * neighbors.length) ] ];
-        if (!canTransfer(out, t, o, s)) {
-          continue;
+        if (rand() < 0.4) {
+          const tt = puzzle.tiles.get(t);
+          const candidates: number[] = [];
+          if (tt && tt.party !== null) {
+            for (const u of out.regionTiles[ s ]) {
+              const tu = puzzle.tiles.get(u);
+              if (tu && tu.party !== null && tu.party !== tt.party && (adj.get(u) || []).some((v) => out.partition[ v ] === o)) {
+                candidates.push(u);
+              }
+            }
+          }
+          if (candidates.length === 0) {
+            continue;
+          }
+          const cand = trySwap(out, t, o, s, candidates[ Math.floor(rand() * candidates.length) ]);
+          if (!cand) {
+            continue;
+          }
+          out = cand;
+        } else {
+          if (!canTransfer(out, t, o, s)) {
+            continue;
+          }
+          out = applyTransfer(out, t, o, s);
         }
-        out = applyTransfer(out, t, o, s);
         break;
       }
     }

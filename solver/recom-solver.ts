@@ -400,7 +400,14 @@ export function solve(
   // opponent is forced to win (house majority that cannot all be wasted),
   // even targetWins = 1 may be unreachable while 2 wins exist.  Run the
   // constructive phase whenever 2+ wins are spatially plausible.
-  const constructiveW = Math.max(2, targetWins);
+  let constructiveW = Math.max(2, targetWins);
+  if (constructiveW * minWin > playerHouses) {
+    // Fewer than 2*minWin player houses: a two-anchor seed is impossible.
+    // Single-anchor seeds still matter — puzzles like day 91 are only
+    // winnable with ONE winning district and every other district tied,
+    // which random constructions never produce.
+    constructiveW = Math.min(2, Math.max(1, Math.floor(playerHouses / minWin)));
+  }
   if (constructiveW <= puzzle.regionCount && constructiveW * minWin <= playerHouses) {
     const constructiveBudgetMs = Math.min(15000, Math.max(3000, Math.floor(timeLimitMs * 0.25)));
     const constructiveStart = Date.now();

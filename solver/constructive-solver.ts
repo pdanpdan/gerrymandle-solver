@@ -61,7 +61,7 @@ export function collectSeedDistricts(
   const minWin = Math.floor(size / PC) + 1;
 
   const W = targetWins;
-  if (W < 2 || W > K || W * minWin > puzzle.houses) {
+  if (W < 1 || W > K || W * minWin > puzzle.houses) {
     return [];
   }
 
