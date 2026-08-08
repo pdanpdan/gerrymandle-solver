@@ -1,6 +1,6 @@
 import type { PuzzlePayload } from '../solver/puzzle-utils.ts';
 
-import { addDays, DAY_ONE, dayDiff, fetchPuzzle, todayLocal } from '../solver/puzzle-utils.ts';
+import { addDays, DAY_ONE, dayDiff, fetchPuzzle, latestPublishedDate } from '../solver/puzzle-utils.ts';
 
 export interface PuzzleMeta {
   day: number;
@@ -13,20 +13,24 @@ export interface PuzzleMeta {
 // no CORS headers); in production the build script writes the same data to
 // dist/client/puzzles.json, served same-origin by GitHub Pages.
 export async function loadAllPuzzles(): Promise<PuzzleMeta[]> {
-  const lastDay = dayDiff(DAY_ONE, todayLocal()) + 1;
-  const days = Array.from({ length: lastDay }, (_, i) => i + 1);
-
   if (import.meta.env.DEV) {
-    const entries = await Promise.all(days.map(async (day) => {
-      const date = addDays(DAY_ONE, day - 1);
+    // Current day per the API (next === null), not per the visitor's clock.
+    const probeDay = async (date: string) => {
       try {
         // Absolute URL on the dev server origin — the Vite proxy forwards
         // /api to the real API (no CORS headers there).
         const { data } = await fetchPuzzle(`${ location.origin }/api/puzzle/gerry/${ date }`);
-        return { day, date, payload: data.payload } as PuzzleMeta;
+        return data;
       } catch {
         return null; // no (or not yet published) puzzle for this day
       }
+    };
+    const lastDay = dayDiff(DAY_ONE, await latestPublishedDate(probeDay)) + 1;
+    const days = Array.from({ length: lastDay }, (_, i) => i + 1);
+    const entries = await Promise.all(days.map(async (day) => {
+      const date = addDays(DAY_ONE, day - 1);
+      const data = await probeDay(date);
+      return data ? { day, date, payload: data.payload } as PuzzleMeta : null;
     }));
     return entries.filter((e): e is PuzzleMeta => e !== null);
   }

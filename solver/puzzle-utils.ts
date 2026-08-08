@@ -94,6 +94,43 @@ export function addDays(date: string, n: number): string {
   return new Date(t).toISOString().slice(0, 10);
 }
 
+/**
+ * Resolve the current puzzle day as the API itself reports it — the day whose
+ * `next` link is null — instead of trusting the caller's clock. The site
+ * rolls over at midnight in its own timezone, while build machines (GitHub
+ * Actions runners) run UTC, so the local date can lag the real current day by
+ * up to a day (21:00-23:59 UTC). Starts from the local date, walks back to
+ * the nearest published day if it is not out yet, then follows the API's
+ * `next` links forward.
+ */
+export async function latestPublishedDate(
+  fetchOne: (date: string) => Promise<ApiPuzzleData | null>,
+): Promise<string> {
+  // The site may not have published the local date yet (it publishes in its
+  // own timezone): walk back to the nearest day that exists.
+  let date = todayLocal();
+  let data = await fetchOne(date);
+  for (let back = 0; back < 8 && !data; back++) {
+    date = addDays(date, -1);
+    data = await fetchOne(date);
+  }
+  if (!data) {
+    throw new Error('Cannot determine the current puzzle day: no published puzzle found near the current date');
+  }
+  // The API marks its current day with next === null; follow next forward in
+  // case the site's day is already ahead of the caller's local date.
+  let lastValid = date;
+  let hops = 0;
+  while (data && data.next && hops++ < 8) {
+    date = data.next;
+    data = await fetchOne(date);
+    if (data) {
+      lastValid = date;
+    }
+  }
+  return lastValid;
+}
+
 export function fileStem(date: string, day: number, wins: number, total: number, type: string): string {
   return `${ date.replace(/-/g, '') }_${ day }_${ type }_${ wins }_${ total }`;
 }

@@ -10,11 +10,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { addDays, DAY_ONE, dayDiff, fetchPuzzle, todayLocal } from '../solver/puzzle-utils.ts';
+import { addDays, DAY_ONE, dayDiff, fetchPuzzle, latestPublishedDate } from '../solver/puzzle-utils.ts';
 
 const OUT = path.join(fileURLToPath(new URL('..', import.meta.url)), 'dist', 'client', 'puzzles.json');
 
-const lastDay = dayDiff(DAY_ONE, todayLocal()) + 1;
+async function probe(date: string) {
+  try {
+    const { data } = await fetchPuzzle(`https://gerrymandle.com/api/puzzle/gerry/${ date }`);
+    return data;
+  } catch {
+    return null; // no (or not yet published) puzzle for this day
+  }
+}
+
+// Current day per the API (next === null), not per the build machine's clock:
+// GitHub Actions runners are UTC while the site's day starts at midnight in
+// its own timezone, so a UTC date can be one day behind the real puzzle day.
+const lastDay = dayDiff(DAY_ONE, await latestPublishedDate(probe)) + 1;
 const list: { day: number; date: string; payload: PuzzlePayload; }[] = [];
 let failures = 0;
 for (let day = 1; day <= lastDay; day++) {

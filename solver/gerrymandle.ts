@@ -16,10 +16,10 @@ import {
   extract,
   fetchPuzzle,
   fileStem,
+  latestPublishedDate,
   partyName,
   renderSVG,
   scorePartition,
-  todayLocal,
 } from './puzzle-utils.ts';
 
 const DEFAULT_TIME_LIMIT_MS = 2 * 60 * 1000; // minutes per puzzle
@@ -281,7 +281,17 @@ async function solvePuzzle(url: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, q
 }
 
 async function solveAll(origin: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, bestMode = false, debugMode = false }: { timeLimitMs?: number; bestMode?: boolean; debugMode?: boolean; } = {}) {
-  const today = todayLocal();
+  // Current day per the API (next === null), not per the machine's clock:
+  // the site's day starts at midnight in its own timezone, which can be
+  // ahead of (or behind) the local date.
+  const today = await latestPublishedDate(async (date) => {
+    try {
+      const { data } = await fetchPuzzle(`${ origin }/api/puzzle/gerry/${ date }`);
+      return data;
+    } catch {
+      return null; // no (or not yet published) puzzle for this day
+    }
+  });
   const lastDay = dayDiff(DAY_ONE, today) + 1;
   if (lastDay < 1) {
     console.log('No puzzles published yet.');
