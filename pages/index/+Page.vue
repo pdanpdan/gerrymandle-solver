@@ -374,9 +374,15 @@ async function solveSelected() {
   });
   await Promise.all(workers);
   solving.value = false;
-  const done = solveRunDays.value.filter((d) => statuses[ d ]?.state === 'done').length;
-  const failed = solveRunDays.value.length - done;
-  showToast(failed === 0 ? `Solved all ${ done } day${ done === 1 ? '' : 's' }.` : `Solved ${ done } of ${ solveRunDays.value.length } day${ solveRunDays.value.length === 1 ? '' : 's' }.`);
+  // Only strict wins count as solved: a day whose solver found a partition
+  // but did not win (tie/loss) is 'done' with won=false and must not
+  // produce a success toast.
+  const won = solveRunDays.value.filter((d) => {
+    const st = statuses[ d ];
+    return st?.state === 'done' && st.won === true;
+  }).length;
+  const failed = solveRunDays.value.length - won;
+  showToast(failed === 0 ? `Solved all ${ won } day${ won === 1 ? '' : 's' }.` : `Solved ${ won } of ${ solveRunDays.value.length } day${ solveRunDays.value.length === 1 ? '' : 's' }.`);
 }
 
 function renderDay(day: number) {
