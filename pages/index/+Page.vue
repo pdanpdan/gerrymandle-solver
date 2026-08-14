@@ -249,8 +249,9 @@ const rendered = reactive<Record<number, RenderedDay>>({});
 
 // Per-day expand/collapse state of the result cards.
 const openResults = reactive(new Set<number>());
-// Remember the last Expand/Collapse-all action; new results follow it.
-const defaultOpen = ref(true);
+// Default state for solutions restored from localStorage (a fresh solve is
+// always expanded; Expand/Collapse-all updates this).
+const defaultOpen = ref(false);
 
 // ---------------------------------------------------------------------------
 // Won-solve persistence (localStorage)
@@ -351,11 +352,9 @@ async function solveSelected() {
         if (result.partArray) {
           results.value[ day ] = { meta, partArray: result.partArray, wins: result.wins, isStrictWin: result.isStrictWin };
           statuses[ day ] = { state: 'done', dots: 0, won: result.isStrictWin };
-          if (defaultOpen.value) {
-            openResults.add(day);
-          } else {
-            openResults.delete(day);
-          }
+          // A fresh solve is always shown expanded; only solutions restored
+          // from localStorage follow the last Expand/Collapse-all default.
+          openResults.add(day);
           // A won puzzle is deselected so a new Solve click does not
           // re-solve it; tied/lost days stay selected for retry.
           if (result.isStrictWin) {
@@ -442,10 +441,17 @@ function renderDay(day: number) {
 // result stays visible).
 const solvedDays = computed(() => Object.keys(results.value).map(Number).sort((a, b) => b - a));
 
+// The Results section is filtered by the search string only (the list-view
+// buttons describe day-list states, not solutions), across every page.
+const visibleSolvedDays = computed(() => {
+  const visible = new Set(filteredPuzzles.value.map((p) => p.day));
+  return solvedDays.value.filter((d) => visible.has(d));
+});
+
 function setAllResults(open: boolean) {
   defaultOpen.value = open;
   if (open) {
-    for (const d of solvedDays.value) {
+    for (const d of visibleSolvedDays.value) {
       openResults.add(d);
     }
   } else {
@@ -766,15 +772,15 @@ function dayInfo(day: number): DayInfo | null {
     </div>
 
     <!-- Results -->
-    <section v-if="solvedDays.length > 0 || Object.keys(rendered).length > 0" class="card bg-base-content/4 shadow-sm mt-4">
+    <section v-if="visibleSolvedDays.length > 0" class="card bg-base-content/4 shadow-sm mt-4">
       <div class="card-body px-2">
         <h2 class="card-title px-4">
           <span>Results</span>
           <div class="ms-auto flex gap-2">
-            <button class="btn btn-sm" :disabled="solvedDays.length === 0" @click="setAllResults(true)">
+            <button class="btn btn-sm" :disabled="visibleSolvedDays.length === 0" @click="setAllResults(true)">
               Expand all
             </button>
-            <button class="btn btn-sm" :disabled="solvedDays.length === 0" @click="setAllResults(false)">
+            <button class="btn btn-sm" :disabled="visibleSolvedDays.length === 0" @click="setAllResults(false)">
               Collapse all
             </button>
           </div>
@@ -782,7 +788,7 @@ function dayInfo(day: number): DayInfo | null {
 
         <div class="flex flex-col gap-4">
           <details
-            v-for="day in solvedDays"
+            v-for="day in visibleSolvedDays"
             :key="day"
             class="collapse collapse-arrow bg-base-content/4 shadow-sm"
             :open="openResults.has(day)"
