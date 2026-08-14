@@ -8,7 +8,7 @@ minimumReleaseAgeExclude:
   - '@vue/runtime-dom@3.5.41'
   - '@vue/server-renderer@3.5.41'
   - '@vue/shared@3.5.41'
-  - daisyui@5.7.16
+  - daisyui@5.7.16 || 5.7.17
   - tsx@4.23.8
   - vue@3.5.41
 shellEmulator: true
@@ -27,13 +27,13 @@ allowBuilds:
 catalog:
   '@antfu/eslint-config': ^9.3.0
   '@tailwindcss/vite': ^4.3.3
-  '@types/node': ^26.1.2
+  '@types/node': ^26.2.0
   '@vitejs/plugin-vue': ^6.0.8
-  daisyui: ^5.7.16
+  daisyui: ^5.7.17
   eslint: ^10.8.1
-  eslint-plugin-vuejs-accessibility: ^2.5.0
+  eslint-plugin-vuejs-accessibility: ^2.6.0
   tailwindcss: ^4.3.3
-  tsx: ^4.23.11
+  tsx: ^4.23.12
   typescript: ^6.0.3
   vike: ^0.4.260
   vike-vue: ^0.9.13
