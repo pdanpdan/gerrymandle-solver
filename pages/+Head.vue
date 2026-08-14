@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 const themeInitSrc = `${ import.meta.env.BASE_URL }theme-init.js`;
+const faviconHref = `${ import.meta.env.BASE_URL }favicon.svg`;
 </script>
 
 <template>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" :href="faviconHref" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
   <meta http-equiv="content-language" content="en-us" />

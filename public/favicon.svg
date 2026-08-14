@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Gerrymandle Solver">
+  <polygon points="32,0.5 43.3,7 43.3,20 32,26.5 20.7,20 20.7,7" fill="#f97316" stroke="#c2410c" stroke-width="1.5"/>
+  <polygon points="12.5,34.3 23.8,40.8 23.8,53.8 12.5,60.3 1.2,53.8 1.2,40.8" fill="#22c55e" stroke="#15803d" stroke-width="1.5"/>
+  <polygon points="51.5,34.3 62.8,40.8 62.8,53.8 51.5,60.3 40.2,53.8 40.2,40.8" fill="#a855f7" stroke="#7e22ce" stroke-width="1.5"/>
+  <polygon points="32,23 43.3,29.5 43.3,42.5 32,49 20.7,42.5 20.7,29.5" fill="#2563eb" stroke="#1d4ed8" stroke-width="1.5"/>
+  <circle cx="32" cy="36" r="4.5" fill="#ffffff" stroke="#1d4ed8" stroke-width="1"/>
+</svg>
