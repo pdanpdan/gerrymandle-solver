@@ -105,12 +105,15 @@ const filteredPuzzles = computed<PuzzleMeta[]>(() => {
   return puzzles.value.filter((p) => (byDay ? byDay(p) : false) || byDate(p));
 });
 
+// Only a strict win counts as solved (see runSolveDay): a day whose solver
+// found a partition but tied or lost is shown as Failed and stays unsolved.
+function isSolved(st: DayStatus | undefined): boolean {
+  return st?.state === 'done' && st.won === true;
+}
+
 // Days in the current filter with no winning solution yet: never tried (no
-// status) or failed. Tied/lost days count as processed and are left alone.
-const unsolvedFiltered = computed(() => filteredPuzzles.value.filter((p) => {
-  const st = statuses[ p.day ];
-  return !st || st.state === 'failed';
-}));
+// status), failed, or tied/lost.
+const unsolvedFiltered = computed(() => filteredPuzzles.value.filter((p) => !isSolved(statuses[ p.day ])));
 
 const visiblePuzzles = computed<PuzzleMeta[]>(() => {
   // Most recent day first in every view.
@@ -118,9 +121,9 @@ const visiblePuzzles = computed<PuzzleMeta[]>(() => {
     case 'selected':
       return filteredPuzzles.value.filter((p) => selected.value.has(p.day)).reverse();
     case 'solved':
-      return filteredPuzzles.value.filter((p) => statuses[ p.day ]?.state === 'done').reverse();
+      return filteredPuzzles.value.filter((p) => isSolved(statuses[ p.day ])).reverse();
     case 'unsolved':
-      return filteredPuzzles.value.filter((p) => !statuses[ p.day ] || statuses[ p.day ].state === 'failed').reverse();
+      return filteredPuzzles.value.filter((p) => !isSolved(statuses[ p.day ])).reverse();
     default:
       return filteredPuzzles.value.slice().reverse();
   }
@@ -152,8 +155,8 @@ function selectAllFiltered() {
   }
 }
 
-// Select days that have not been solved yet: never tried (no status) or
-// failed. Tied/lost days count as processed and are left alone.
+// Select days that have not been solved yet: never tried (no status),
+// failed, or tied/lost. All of those stay eligible for a retry run.
 function selectUnsolvedFiltered() {
   for (const p of unsolvedFiltered.value) {
     selected.value.add(p.day);
@@ -520,7 +523,7 @@ function dayInfo(day: number): DayInfo | null {
 </script>
 
 <template>
-  <div class="navbar bg-base-100 sticky top-0 z-10 shadow-sm">
+  <div class="navbar max-w-7xl mx-auto bg-base-100 sticky top-0 z-10 shadow-sm">
     <div class="flex-1 text-xl mx-2">
       Gerrymandle Solver
     </div>
@@ -548,7 +551,7 @@ function dayInfo(day: number): DayInfo | null {
     </div>
   </div>
 
-  <section class="hero bg-base-200 py-10">
+  <section class="hero bg-base-200 py-10 max-w-7xl mx-auto">
     <div class="hero-content text-center">
       <div class="max-w-xl">
         <h1 class="text-4xl font-bold">
@@ -563,10 +566,51 @@ function dayInfo(day: number): DayInfo | null {
     </div>
   </section>
 
-  <main class="mx-auto max-w-6xl p-4 flex-1 w-full">
-    <!-- Controls -->
-    <div class="card bg-base-content/4 shadow-sm">
+  <main class="mx-auto max-w-7xl py-4 flex-1 w-full">
+    <!-- Puzzle list -->
+    <div class="card bg-base-content/4 mt-4 shadow-sm">
       <div class="card-body">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="card-title">
+            Days
+          </h2>
+          <span id="list-view-label" class="sr-only">List view</span>
+          <form id="list-view-filter" class="join gap-0.5" aria-labelledby="list-view-label">
+            <input
+              v-model="listView"
+              type="radio"
+              name="list-view"
+              class="join-item btn btn-sm"
+              value="all"
+              aria-label="All"
+            />
+            <input
+              v-model="listView"
+              type="radio"
+              name="list-view"
+              class="join-item btn btn-sm"
+              value="selected"
+              aria-label="Selected"
+            />
+            <input
+              v-model="listView"
+              type="radio"
+              name="list-view"
+              class="join-item btn btn-sm"
+              value="solved"
+              aria-label="Solved"
+            />
+            <input
+              v-model="listView"
+              type="radio"
+              name="list-view"
+              class="join-item btn btn-sm"
+              value="unsolved"
+              aria-label="Unsolved"
+            />
+          </form>
+        </div>
+
         <div class="flex flex-wrap items-end gap-4">
           <div class="flex-1 basis-64">
             <label class="label mb-2" for="puzzle-filter">
@@ -635,52 +679,6 @@ function dayInfo(day: number): DayInfo | null {
             </span>
             <progress class="progress progress-info w-32" :value="finishedInRun" :max="solveRunDays.length" :aria-label="`${ finishedInRun } out of ${ solveRunDays.length } done`" />
           </template>
-        </div>
-      </div>
-    </div>
-
-    <!-- Puzzle list -->
-    <div class="card bg-base-content/4 mt-4 shadow-sm">
-      <div class="card-body">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="card-title">
-            Days
-          </h2>
-          <span id="list-view-label" class="sr-only">List view</span>
-          <form id="list-view-filter" class="join gap-0.5" aria-labelledby="list-view-label">
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="all"
-              aria-label="All"
-            />
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="selected"
-              aria-label="Selected"
-            />
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="solved"
-              aria-label="Solved"
-            />
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="unsolved"
-              aria-label="Unsolved"
-            />
-          </form>
         </div>
 
         <div v-if="puzzlesLoading" class="flex flex-col gap-2" aria-label="Loading puzzles">
@@ -770,6 +768,10 @@ function dayInfo(day: number): DayInfo | null {
         </template>
       </div>
     </div>
+
+    <p v-if="!solving && totalSelected === 0" class="mt-4 text-sm text-base-content/70 px-4">
+      Select one or more days above, then press Solve. The solver runs in your browser.
+    </p>
 
     <!-- Results -->
     <section v-if="visibleSolvedDays.length > 0" class="card bg-base-content/4 shadow-sm mt-4">
@@ -862,13 +864,9 @@ function dayInfo(day: number): DayInfo | null {
         </div>
       </div>
     </section>
-
-    <p v-if="!solving && totalSelected === 0" class="mt-4 text-sm text-base-content/70">
-      Select one or more days above, then press Solve. The solver runs in your browser.
-    </p>
   </main>
 
-  <footer class="footer footer-center bg-base-200 p-4">
+  <footer class="footer footer-center bg-base-200 py-4 max-w-7xl mx-auto">
     <aside>
       <p>
         Runs entirely in your browser — no server. Puzzles from
