@@ -1,7 +1,7 @@
 {
   "name": "gerrymandle-solver",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "packageManager": "pnpm@11.21.0",
   "description": "",
   "keywords": [],

@@ -172,9 +172,13 @@ function clearSelection() {
 // ---------------------------------------------------------------------------
 // Hard puzzles (tie-district cases like days 26/30/51) need up to ~60s per
 // attempt; typical days finish far sooner. Each day races several parallel
-// attempts with the CLI-proven seed sequence, so wall time stays ~60s.
-const TIME_LIMIT_MS = 60000;
-const ATTEMPTS_PER_DAY = 4;
+// The per-attempt success rate is what it is — attempts run in parallel
+// inside each worker, so more of them costs no wall time and turns hard
+// puzzles (narrow strict-win targets, e.g. day 98's required tie district)
+// from a coin flip into a near-certainty.  The 2-minute budget matches the
+// CLI default; the constructive phase alone can take 30s per attempt.
+const TIME_LIMIT_MS = 120000;
+const ATTEMPTS_PER_DAY = 8;
 
 type DayStatus
   = | { state: 'queued' | 'running' | 'done'; dots: number; won?: boolean; }

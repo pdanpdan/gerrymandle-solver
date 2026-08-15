@@ -23,7 +23,10 @@ import {
 } from './puzzle-utils.ts';
 
 const DEFAULT_TIME_LIMIT_MS = 2 * 60 * 1000; // minutes per puzzle
-const SEEDS_PER_PUZZLE = 4;
+// Seeds run in parallel (one batch on multicore), so more seeds cost no wall
+// time — they matter for puzzles whose strict win is a narrow target (e.g.
+// day 98, which needs an exactly-tied district).
+const SEEDS_PER_PUZZLE = 8;
 
 // Solution SVGs live next to the solver (repo root/solutions), not the CWD.
 const SOLUTIONS_DIR = fileURLToPath(new URL('../solutions/', import.meta.url));
