@@ -141,7 +141,24 @@ const emptyListMessage = computed(() => {
 });
 
 const pageCount = computed(() => Math.max(1, Math.ceil(visiblePuzzles.value.length / PAGE_SIZE)));
-const pageNumbers = computed(() => Array.from({ length: pageCount.value }, (_, i) => i + 1));
+
+// Page buttons to show: at most two ellipses, so the row stays within a
+// narrow phone screen (first | prev | numbers | next | last).
+type PageItem = number | 'gap-start' | 'gap-end';
+const paginationItems = computed<PageItem[]>(() => {
+  const total = pageCount.value;
+  const cur = page.value;
+  if (total <= 6) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (cur <= 3) {
+    return [ 1, 2, 3, 4, 'gap-end', total ];
+  }
+  if (cur >= total - 2) {
+    return [ 1, 'gap-start', total - 3, total - 2, total - 1, total ];
+  }
+  return [ 1, 'gap-start', cur - 1, cur, cur + 1, 'gap-end', total ];
+});
 const pagedPuzzles = computed(() => visiblePuzzles.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE));
 
 // Reset to page 1 whenever the filter or list view changes.
@@ -738,37 +755,68 @@ function dayInfo(day: number): DayInfo | null {
             <li />
           </ul>
 
-          <div v-if="pageCount > 1" class="join gap-0.5 mt-3 justify-center">
-            <button
-              class="join-item btn btn-sm"
-              type="button"
-              :disabled="page === 1"
-              aria-label="Previous page"
-              @click="page--"
-            >
-              «
-            </button>
-            <button
-              v-for="n in pageNumbers"
-              :key="n"
-              class="join-item btn btn-sm"
-              :class="{ 'btn-active': n === page }"
-              type="button"
-              :aria-label="`Page ${ n }`"
-              @click="page = n"
-            >
-              {{ n }}
-            </button>
-            <button
-              class="join-item btn btn-sm"
-              type="button"
-              :disabled="page === pageCount"
-              aria-label="Next page"
-              @click="page++"
-            >
-              »
-            </button>
-          </div>
+          <nav v-if="pageCount > 1" class="mt-3 flex justify-center" aria-label="Day list pages">
+            <div class="join gap-0.5">
+              <button
+                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                type="button"
+                :disabled="page === 1"
+                aria-label="First page"
+                title="First page"
+                @click="page = 1"
+              >
+                «
+              </button>
+              <button
+                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                type="button"
+                :disabled="page === 1"
+                aria-label="Previous page"
+                title="Previous page"
+                @click="page--"
+              >
+                ‹
+              </button>
+              <template v-for="item in paginationItems" :key="item">
+                <span
+                  v-if="typeof item !== 'number'"
+                  class="join-item flex items-center px-1 text-xs opacity-60"
+                  aria-hidden="true"
+                >…</span>
+                <button
+                  v-else
+                  class="join-item btn btn-xs sm:btn-sm px-1.5 sm:px-3"
+                  :class="{ 'btn-active': item === page }"
+                  type="button"
+                  :aria-label="`Page ${ item }`"
+                  :aria-current="item === page ? 'page' : undefined"
+                  @click="page = item"
+                >
+                  {{ item }}
+                </button>
+              </template>
+              <button
+                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                type="button"
+                :disabled="page === pageCount"
+                aria-label="Next page"
+                title="Next page"
+                @click="page++"
+              >
+                ›
+              </button>
+              <button
+                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                type="button"
+                :disabled="page === pageCount"
+                aria-label="Last page"
+                title="Last page"
+                @click="page = pageCount"
+              >
+                »
+              </button>
+            </div>
+          </nav>
         </template>
       </div>
     </div>
