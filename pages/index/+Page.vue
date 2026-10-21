@@ -756,9 +756,9 @@ function dayInfo(day: number): DayInfo | null {
           </ul>
 
           <nav v-if="pageCount > 1" class="mt-3 flex justify-center" aria-label="Day list pages">
-            <div class="join gap-0.5">
+            <div class="join gap-1">
               <button
-                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                class="join-item btn min-w-[4.5ch] px-1.5 sm:px-4"
                 type="button"
                 :disabled="page === 1"
                 aria-label="First page"
@@ -768,7 +768,7 @@ function dayInfo(day: number): DayInfo | null {
                 «
               </button>
               <button
-                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                class="join-item btn min-w-[4.5ch] px-1.5 sm:px-4"
                 type="button"
                 :disabled="page === 1"
                 aria-label="Previous page"
@@ -780,13 +780,13 @@ function dayInfo(day: number): DayInfo | null {
               <template v-for="item in paginationItems" :key="item">
                 <span
                   v-if="typeof item !== 'number'"
-                  class="join-item flex items-center px-1 text-xs opacity-60"
+                  class="flex items-center px-1 text-sm text-base-content/60"
                   aria-hidden="true"
                 >…</span>
                 <button
                   v-else
-                  class="join-item btn btn-xs sm:btn-sm px-1.5 sm:px-3"
-                  :class="{ 'btn-active': item === page }"
+                  class="join-item btn min-w-[4.5ch] px-1.5 sm:px-4"
+                  :class="{ 'btn-primary': item === page }"
                   type="button"
                   :aria-label="`Page ${ item }`"
                   :aria-current="item === page ? 'page' : undefined"
@@ -796,7 +796,7 @@ function dayInfo(day: number): DayInfo | null {
                 </button>
               </template>
               <button
-                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                class="join-item btn min-w-[4.5ch] px-1.5 sm:px-4"
                 type="button"
                 :disabled="page === pageCount"
                 aria-label="Next page"
@@ -806,7 +806,7 @@ function dayInfo(day: number): DayInfo | null {
                 ›
               </button>
               <button
-                class="join-item btn btn-xs sm:btn-sm px-1.5"
+                class="join-item btn min-w-[4.5ch] px-1.5 sm:px-4"
                 type="button"
                 :disabled="page === pageCount"
                 aria-label="Last page"
