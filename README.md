@@ -35,8 +35,10 @@ page and deployed to GitHub Pages:
 
 Puzzle data is fetched from the gerrymandle.com API at build time into
 `dist/client/puzzles.json` (the API sends no CORS headers, so the browser
-cannot fetch it directly), and a scheduled GitHub Actions job rebuilds and
-redeploys every eight hours so new daily puzzles appear automatically.
+cannot fetch it directly). A scheduled GitHub Actions job rebuilds and
+redeploys every 30 minutes so new daily puzzles appear shortly after
+publication; each rebuild reuses the previous deployment's data and only
+fetches new or missing days from the API.
 
 ## CLI
 
