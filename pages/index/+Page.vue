@@ -2,7 +2,7 @@
 import type { PuzzleMeta } from '../../web/puzzle-list';
 import type { ThemeMode } from '../../web/theme';
 
-import { computed, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue';
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue';
 
 import { extract, fileStem, PALETTE, partyName, renderSVG, scorePartition } from '../../solver/puzzle-utils';
 import { loadAllPuzzles } from '../../web/puzzle-list';
@@ -89,9 +89,11 @@ async function reloadPuzzles() {
 const filter = ref('');
 const selected = ref<Set<number>>(new Set());
 const statuses = reactive<Record<number, DayStatus>>({});
+// Solver results by day (kept for the result cards and the vs-site views).
+const results = ref<Record<number, { meta: PuzzleMeta; partArray: Array<number | null>; wins: number; isStrictWin: boolean; }>>({});
 const page = ref(1);
 const PAGE_SIZE = 12;
-type ListView = 'all' | 'selected' | 'solved' | 'unsolved';
+type ListView = 'all' | 'selected' | 'solved' | 'unsolved' | 'better' | 'worse';
 const listView = ref<ListView>('all');
 
 const filteredPuzzles = computed<PuzzleMeta[]>(() => {
@@ -123,31 +125,68 @@ function isSolved(st: DayStatus | undefined): boolean {
 // status), failed, or tied/lost.
 const unsolvedFiltered = computed(() => filteredPuzzles.value.filter((p) => !isSolved(statuses[ p.day ])));
 
-const visiblePuzzles = computed<PuzzleMeta[]>(() => {
-  // Most recent day first in every view.
+// How each solved day compares with the site's solution: more districts won
+// by our color is better; on equal wins, a bigger lead over the best other
+// color (our districts minus its districts) is better. Equal on both counts
+// is neither. Neutral tiles belong to no color, so they are never counted.
+const solvedVsSite = computed(() => {
+  const map = new Map<number, 'better' | 'worse'>();
+  for (const [ key, entry ] of Object.entries(results.value)) {
+    const puzzle = extract({ payload: entry.meta.payload, number: entry.meta.day, date: entry.meta.date });
+    const siteScore = scorePartition(puzzle.optimumPartition, puzzle);
+    const solvedScore = scorePartition(entry.partArray, puzzle);
+    const diff = (solvedScore.wins - siteScore.wins)
+      || ((solvedScore.wins - solvedScore.maxOppWins) - (siteScore.wins - siteScore.maxOppWins));
+    if (diff !== 0) {
+      map.set(Number(key), diff > 0
+        ? 'better'
+        : 'worse');
+    }
+  }
+  return map;
+});
+
+// Days matching the active list view. Shared by the day list and the Results
+// section so the two always agree.
+function inListView(day: number): boolean {
   switch (listView.value) {
     case 'selected':
-      return filteredPuzzles.value.filter((p) => selected.value.has(p.day)).reverse();
+      return selected.value.has(day);
     case 'solved':
-      return filteredPuzzles.value.filter((p) => isSolved(statuses[ p.day ])).reverse();
+      return isSolved(statuses[ day ]);
     case 'unsolved':
-      return filteredPuzzles.value.filter((p) => !isSolved(statuses[ p.day ])).reverse();
+      return !isSolved(statuses[ day ]);
+    case 'better':
+      return solvedVsSite.value.get(day) === 'better';
+    case 'worse':
+      return solvedVsSite.value.get(day) === 'worse';
     default:
-      return filteredPuzzles.value.slice().reverse();
+      return true;
   }
-});
+}
+
+const visiblePuzzles = computed<PuzzleMeta[]>(() =>
+  // Most recent day first in every view.
+  filteredPuzzles.value.filter((p) => inListView(p.day)).reverse(),
+);
 
 // Empty-list message depends on which view is active.
 const emptyListMessage = computed(() => {
   if (filteredPuzzles.value.length === 0) {
     return 'No days match the filter.';
   }
-  if (listView.value === 'selected') {
-    return 'No days selected yet.';
+  switch (listView.value) {
+    case 'selected':
+      return 'No days selected yet.';
+    case 'unsolved':
+      return 'No unsolved days yet.';
+    case 'better':
+      return 'No days solved better than the site solution yet.';
+    case 'worse':
+      return 'No days solved worse than the site solution yet.';
+    default:
+      return 'No solved days yet.';
   }
-  return listView.value === 'unsolved'
-    ? 'No unsolved days yet.'
-    : 'No solved days yet.';
 });
 
 const pageCount = computed(() => Math.max(1, Math.ceil(visiblePuzzles.value.length / PAGE_SIZE)));
@@ -259,7 +298,6 @@ function showToast(message: string) {
     toastTimer = null;
   }, 6000);
 }
-const results = ref<Record<number, { meta: PuzzleMeta; partArray: Array<number | null>; wins: number; isStrictWin: boolean; }>>({});
 
 // Most recent day first, so solves start with the latest puzzle.
 const selectedDays = computed(() => [ ...selected.value ].sort((a, b) => b - a));
@@ -297,6 +335,16 @@ interface RenderedDay {
 }
 
 const rendered = reactive<Record<number, RenderedDay>>({});
+
+// Result-card shorthand: districts won by our color minus districts won by
+// the best other color (neutral tiles have no color). Always signed, so a
+// tie reads "+0" and a deficit "-2".
+function signedMargin(score: ReturnType<typeof scorePartition> | null | undefined): string {
+  const diff = (score?.wins ?? 0) - (score?.maxOppWins ?? 0);
+  return diff >= 0
+    ? `+${ diff }`
+    : String(diff);
+}
 
 // Per-day expand/collapse state of the result cards.
 const openResults = reactive(new Set<number>());
@@ -519,11 +567,11 @@ function renderDay(day: number) {
 // result stays visible).
 const solvedDays = computed(() => Object.keys(results.value).map(Number).sort((a, b) => b - a));
 
-// The Results section is filtered by the search string only (the list-view
-// buttons describe day-list states, not solutions), across every page.
+// The Results section follows the search string and the active list view,
+// across every day-list page (pagination does not split results).
 const visibleSolvedDays = computed(() => {
   const visible = new Set(filteredPuzzles.value.map((p) => p.day));
-  return solvedDays.value.filter((d) => visible.has(d));
+  return solvedDays.value.filter((d) => visible.has(d) && inListView(d));
 });
 
 function setAllResults(open: boolean) {
@@ -544,6 +592,13 @@ function onResultToggle(day: number, e: Event) {
   } else {
     openResults.delete(day);
   }
+}
+
+// Open the day's result card and scroll it into view (the day-list button).
+async function scrollToResult(day: number) {
+  openResults.add(day);
+  await nextTick();
+  document.getElementById(`result-day-${ day }`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Save an SVG as a file download, byte-for-byte the same string the CLI
@@ -650,39 +705,64 @@ function dayInfo(day: number): DayInfo | null {
             Days
           </h2>
           <span id="list-view-label" class="sr-only">List view</span>
-          <form id="list-view-filter" class="join gap-0.5" aria-labelledby="list-view-label">
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="all"
-              aria-label="All"
-            />
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="selected"
-              aria-label="Selected"
-            />
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="solved"
-              aria-label="Solved"
-            />
-            <input
-              v-model="listView"
-              type="radio"
-              name="list-view"
-              class="join-item btn btn-sm"
-              value="unsolved"
-              aria-label="Unsolved"
-            />
+          <form id="list-view-filter" class="flex w-full flex-wrap items-center gap-2 sm:w-auto" aria-labelledby="list-view-label">
+            <div class="join gap-0.5">
+              <input
+                v-model="listView"
+                type="radio"
+                name="list-view"
+                class="join-item btn btn-sm"
+                value="all"
+                aria-label="All"
+              />
+              <input
+                v-model="listView"
+                type="radio"
+                name="list-view"
+                class="join-item btn btn-sm"
+                value="selected"
+                aria-label="Selected"
+              />
+              <input
+                v-model="listView"
+                type="radio"
+                name="list-view"
+                class="join-item btn btn-sm"
+                value="solved"
+                aria-label="Solved"
+              />
+              <input
+                v-model="listView"
+                type="radio"
+                name="list-view"
+                class="join-item btn btn-sm"
+                value="unsolved"
+                aria-label="Unsolved"
+              />
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs whitespace-nowrap text-base-content/60" aria-hidden="true">vs site</span>
+              <div class="join gap-0.5">
+                <input
+                  v-model="listView"
+                  type="radio"
+                  name="list-view"
+                  class="join-item btn btn-sm"
+                  value="better"
+                  aria-label="Better"
+                  title="Solved better than the site solution: more districts won, or the same wins with fewer districts won by the best other color"
+                />
+                <input
+                  v-model="listView"
+                  type="radio"
+                  name="list-view"
+                  class="join-item btn btn-sm"
+                  value="worse"
+                  aria-label="Worse"
+                  title="Solved worse than the site solution: fewer districts won, or the same wins with more districts won by the best other color"
+                />
+              </div>
+            </div>
           </form>
         </div>
 
@@ -743,7 +823,7 @@ function dayInfo(day: number): DayInfo | null {
         </div>
 
         <div class="flex flex-wrap items-center gap-2 text-sm text-base-content/70">
-          <span>{{ filteredPuzzles.length }} of {{ puzzles.length }} days shown</span>
+          <span>{{ visiblePuzzles.length }} of {{ puzzles.length }} days shown</span>
           <span aria-hidden="true">·</span>
           <span>{{ totalSelected }} selected</span>
           <template v-if="solving">
@@ -805,6 +885,27 @@ function dayInfo(day: number): DayInfo | null {
                   </template>
                 </span>
               </label>
+              <button
+                v-if="results[p.day]"
+                class="btn btn-sm btn-ghost btn-square self-center"
+                type="button"
+                :aria-label="`Scroll to day ${ p.day } solution`"
+                :title="`Scroll to day ${ p.day } solution`"
+                @click="scrollToResult(p.day)"
+              >
+                <svg
+                  class="size-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14M6 13l6 6 6-6" />
+                </svg>
+              </button>
             </li>
             <li />
           </ul>
@@ -897,8 +998,9 @@ function dayInfo(day: number): DayInfo | null {
         <div class="flex flex-col gap-4">
           <details
             v-for="day in visibleSolvedDays"
+            :id="`result-day-${ day }`"
             :key="day"
-            class="collapse collapse-arrow bg-base-content/4 shadow-sm"
+            class="collapse collapse-arrow scroll-mt-20 bg-base-content/4 shadow-sm"
             :open="openResults.has(day)"
             @toggle="onResultToggle(day, $event)"
           >
@@ -933,7 +1035,10 @@ function dayInfo(day: number): DayInfo | null {
               <div v-if="rendered[day]" class="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <figure class="flex flex-col rounded-box bg-base-content/4">
                   <figcaption class="font-bold mt-2 flex items-center justify-between gap-2 px-2">
-                    <span>Site solution ({{ rendered[day].bestScored.wins }} wins)</span>
+                    <span
+                      class="cursor-help"
+                      title="Second number: districts won by our color minus districts won by the best other color (neutral excluded)"
+                    >Site solution ({{ rendered[day].bestScored.wins }} wins, {{ signedMargin(rendered[day].bestScored) }})</span>
                     <button
                       type="button"
                       class="btn btn-xs"
@@ -948,7 +1053,10 @@ function dayInfo(day: number): DayInfo | null {
 
                 <figure class="flex flex-col rounded-box bg-base-content/4">
                   <figcaption class="font-bold mt-2 flex items-center justify-between gap-2 px-2">
-                    <span>Solved ({{ rendered[day].solvedScored?.wins ?? 0 }} wins)</span>
+                    <span
+                      class="cursor-help"
+                      title="Second number: districts won by our color minus districts won by the best other color (neutral excluded)"
+                    >Solved ({{ rendered[day].solvedScored?.wins ?? 0 }} wins, {{ signedMargin(rendered[day].solvedScored) }})</span>
                     <button
                       v-if="rendered[day].solvedFileName"
                       type="button"
