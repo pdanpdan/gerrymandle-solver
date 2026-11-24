@@ -77,7 +77,13 @@ async function solve(puzzle: Puzzle, timeLimitMs: number = DEFAULT_TIME_LIMIT_MS
     const runSeed = (s: number) => new Promise<SolveResult>((resolve: (v: SolveResult) => void, reject: (e: Error) => void) => {
       let settled = false;
       const w = new Worker(new URL('./solver-worker.ts', import.meta.url), {
-        workerData: { puzzle, seed: s, timeLimitMs: perBatch, target, debug: debugMode },
+        workerData: {
+          puzzle,
+          seed: s,
+          timeLimitMs: perBatch,
+          target,
+          debug: debugMode,
+        },
       });
       workers.push(w);
       w.on('message', (msg) => {
@@ -159,14 +165,22 @@ async function solve(puzzle: Puzzle, timeLimitMs: number = DEFAULT_TIME_LIMIT_MS
   if (bestFallback) {
     return bestFallback;
   }
-  return { partArray: null, wins: 0, goal: target, timedOut: true, isStrictWin: false };
+  return {
+    partArray: null,
+    wins: 0,
+    goal: target,
+    timedOut: true,
+    isStrictWin: false,
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 async function solvePuzzle(url: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, quiet = false, bestMode = false, debugMode = false }: { timeLimitMs?: number; quiet?: boolean; bestMode?: boolean; debugMode?: boolean; } = {}): Promise<{ day: number; date: string; wins: number; optimum: number; } | null> {
-  const log = quiet ? () => {} : (...a: unknown[]) => console.log(...a);
+  const log = quiet
+    ? () => {}
+    : (...a: unknown[]) => console.log(...a);
 
   if (!fs.existsSync(SOLUTIONS_DIR)) {
     fs.mkdirSync(SOLUTIONS_DIR, { recursive: true });
@@ -239,7 +253,12 @@ async function solvePuzzle(url: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, q
       fs.writeFileSync(gridFile, renderSVG(puzzle, null, `Day ${ puzzle.day } - grid: no solution`));
       log(`  Wrote ${ gridFile }`);
     }
-    return { day: puzzle.day, date: puzzle.date, wins: 0, optimum: puzzle.optimum };
+    return {
+      day: puzzle.day,
+      date: puzzle.date,
+      wins: 0,
+      optimum: puzzle.optimum,
+    };
   }
 
   const scored = scorePartition(partArray, puzzle);
@@ -247,11 +266,15 @@ async function solvePuzzle(url: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, q
   log(`Solver finished in ${ elapsed }ms${ timedOut ? ' (time-limited)' : '' }.`);
   log(`  Player districts won: ${ scored.wins } / ${ puzzle.regionCount }`);
   for (const r of scored.results) {
-    const w = r.winner === null ? 'TIE' : partyName(r.winner, puzzle);
+    const w = r.winner === null
+      ? 'TIE'
+      : partyName(r.winner, puzzle);
     const counts = Object.entries(r.counts)
       .map(([ p, c ]) => `${ partyName(Number(p), puzzle) }:${ c }`)
       .join(' ');
-    const mark = r.winner === puzzle.playerParty ? ' <-- WIN' : '';
+    const mark = r.winner === puzzle.playerParty
+      ? ' <-- WIN'
+      : '';
     log(`    District ${ r.region }: winner=${ w }  [${ counts }] (${ r.tileCount } tiles)${ mark }`);
   }
 
@@ -277,10 +300,17 @@ async function solvePuzzle(url: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, q
     const playerNameUpper = playerName.toUpperCase();
     log(`RESULT: ${ playerNameUpper } WINS the election (${ scored.wins } districts vs opponent max ${ scored.maxOppWins })!`);
   } else {
-    log(`RESULT: Player failed to win (${ scored.wins } districts won, opponent max ${ scored.maxOppWins }${ scored.wins > 0 && scored.wins <= scored.maxOppWins ? ' — TIED OR LOST' : '' }).`);
+    log(`RESULT: Player failed to win (${ scored.wins } districts won, opponent max ${ scored.maxOppWins }${ scored.wins > 0 && scored.wins <= scored.maxOppWins
+      ? ' — TIED OR LOST'
+      : '' }).`);
   }
 
-  return { day: puzzle.day, date: puzzle.date, wins: scored.wins, optimum: puzzle.optimum };
+  return {
+    day: puzzle.day,
+    date: puzzle.date,
+    wins: scored.wins,
+    optimum: puzzle.optimum,
+  };
 }
 
 async function solveAll(origin: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, bestMode = false, debugMode = false }: { timeLimitMs?: number; bestMode?: boolean; debugMode?: boolean; } = {}) {
@@ -336,7 +366,9 @@ async function solveAll(origin: string, { timeLimitMs = DEFAULT_TIME_LIMIT_MS, b
         break;
       }
     } catch (err: unknown) {
-      console.error(`Day ${ day } (${ date }): error - ${ err instanceof Error ? err.message : String(err) }`);
+      console.error(`Day ${ day } (${ date }): error - ${ err instanceof Error
+        ? err.message
+        : String(err) }`);
     }
   }
   console.log('\nBatch complete.');
@@ -372,8 +404,12 @@ async function main() {
 
   // Parse --time N (minutes → ms)
   const timeIdx = args.indexOf('--time');
-  const timeMinutes = timeIdx !== -1 ? Number(args[ timeIdx + 1 ]) || 0 : 0;
-  const timeLimitMs = timeMinutes > 0 ? timeMinutes * 60 * 1000 : DEFAULT_TIME_LIMIT_MS;
+  const timeMinutes = timeIdx !== -1
+    ? Number(args[ timeIdx + 1 ]) || 0
+    : 0;
+  const timeLimitMs = timeMinutes > 0
+    ? timeMinutes * 60 * 1000
+    : DEFAULT_TIME_LIMIT_MS;
 
   const bestMode = args.includes('--best');
   const debugMode = args.includes('--debug');

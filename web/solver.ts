@@ -64,13 +64,17 @@ export async function runSolve(req: SolveRequest, attempts: number, onDot: () =>
           }
           results.push(r);
           if (++settled === attempts) {
-            finish(results.reduce((best, x) => (x.wins > best.wins ? x : best)));
+            finish(results.reduce((best, x) => (x.wins > best.wins
+              ? x
+              : best)));
           }
         })
         .catch(() => {
           if (++settled === attempts) {
             finish(results.length > 0
-              ? results.reduce((best, x) => (x.wins > best.wins ? x : best))
+              ? results.reduce((best, x) => (x.wins > best.wins
+                ? x
+                : best))
               : undefined);
           }
         });

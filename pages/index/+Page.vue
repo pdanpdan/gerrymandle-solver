@@ -78,7 +78,9 @@ async function reloadPuzzles() {
     puzzles.value = await loadAllPuzzles();
     restoreSolved();
   } catch (err) {
-    puzzlesError.value = err instanceof Error ? err.message : String(err);
+    puzzlesError.value = err instanceof Error
+      ? err.message
+      : String(err);
   } finally {
     puzzlesLoading.value = false;
   }
@@ -98,11 +100,17 @@ const filteredPuzzles = computed<PuzzleMeta[]>(() => {
     return puzzles.value;
   }
   const n = Number(q);
-  const byDay = Number.isInteger(n) && n >= 1 && n <= 999 ? (p: PuzzleMeta) => p.day === n : null;
+  const byDay = Number.isInteger(n) && n >= 1 && n <= 999
+    ? (p: PuzzleMeta) => p.day === n
+    : null;
   // Dates match on the MM-DD part (the year is the same for every day),
   // unless the query itself contains a year (e.g. a full YYYY-MM-DD date).
-  const byDate = (p: PuzzleMeta) => q.includes('-') ? p.date.includes(q) : p.date.slice(5).includes(q);
-  return puzzles.value.filter((p) => (byDay ? byDay(p) : false) || byDate(p));
+  const byDate = (p: PuzzleMeta) => q.includes('-')
+    ? p.date.includes(q)
+    : p.date.slice(5).includes(q);
+  return puzzles.value.filter((p) => (byDay
+    ? byDay(p)
+    : false) || byDate(p));
 });
 
 // Only a strict win counts as solved (see runSolveDay): a day whose solver
@@ -137,7 +145,9 @@ const emptyListMessage = computed(() => {
   if (listView.value === 'selected') {
     return 'No days selected yet.';
   }
-  return listView.value === 'unsolved' ? 'No unsolved days yet.' : 'No solved days yet.';
+  return listView.value === 'unsolved'
+    ? 'No unsolved days yet.'
+    : 'No solved days yet.';
 });
 
 const pageCount = computed(() => Math.max(1, Math.ceil(visiblePuzzles.value.length / PAGE_SIZE)));
@@ -155,9 +165,24 @@ const paginationItems = computed<PageItem[]>(() => {
     return [ 1, 2, 3, 4, 'gap-end', total ];
   }
   if (cur >= total - 2) {
-    return [ 1, 'gap-start', total - 3, total - 2, total - 1, total ];
+    return [
+      1,
+      'gap-start',
+      total - 3,
+      total - 2,
+      total - 1,
+      total,
+    ];
   }
-  return [ 1, 'gap-start', cur - 1, cur, cur + 1, 'gap-end', total ];
+  return [
+    1,
+    'gap-start',
+    cur - 1,
+    cur,
+    cur + 1,
+    'gap-end',
+    total,
+  ];
 });
 const pagedPuzzles = computed(() => visiblePuzzles.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE));
 
@@ -204,7 +229,9 @@ type DayStatus
 function statusBadge(st: DayStatus): { cls: string; label: string; } {
   if (st.state === 'done') {
     // Solved: green when won, yellow when the solver could not win.
-    return st.won ? { cls: 'badge-success', label: 'Done' } : { cls: 'badge-warning', label: 'Failed' };
+    return st.won
+      ? { cls: 'badge-success', label: 'Done' }
+      : { cls: 'badge-warning', label: 'Failed' };
   }
   if (st.state === 'running') {
     return { cls: 'badge-info', label: 'running' };
@@ -332,7 +359,12 @@ function restoreSolved() {
       continue;
     }
     statuses[ day ] = { state: 'done', dots: 0, won: true };
-    results.value[ day ] = { meta, partArray: stored.partArray, wins: stored.wins, isStrictWin: true };
+    results.value[ day ] = {
+      meta,
+      partArray: stored.partArray,
+      wins: stored.wins,
+      isStrictWin: true,
+    };
     selected.value.delete(day);
     solvedStore[ day ] = stored;
     if (defaultOpen.value) {
@@ -369,12 +401,20 @@ async function solveSelected() {
         const result = await runSolve(
           // toRaw: the ref stores payloads as reactive proxies, which
           // structuredClone (worker postMessage) refuses to serialize.
-          { payload: toRaw(meta.payload), timeLimitMs: TIME_LIMIT_MS },
+          {
+            payload: toRaw(meta.payload),
+            timeLimitMs: TIME_LIMIT_MS,
+          },
           ATTEMPTS_PER_DAY,
           () => { statuses[ day ].dots++; },
         );
         if (result.partArray) {
-          results.value[ day ] = { meta, partArray: result.partArray, wins: result.wins, isStrictWin: result.isStrictWin };
+          results.value[ day ] = {
+            meta,
+            partArray: result.partArray,
+            wins: result.wins,
+            isStrictWin: result.isStrictWin,
+          };
           statuses[ day ] = { state: 'done', dots: 0, won: result.isStrictWin };
           // A fresh solve is always shown expanded; only solutions restored
           // from localStorage follow the last Expand/Collapse-all default.
@@ -391,7 +431,13 @@ async function solveSelected() {
           statuses[ day ] = { state: 'failed', dots: 0, error: 'No solution found' };
         }
       } catch (err) {
-        statuses[ day ] = { state: 'failed', dots: 0, error: err instanceof Error ? err.message : String(err) };
+        statuses[ day ] = {
+          state: 'failed',
+          dots: 0,
+          error: err instanceof Error
+            ? err.message
+            : String(err),
+        };
       }
     }
   });
@@ -405,7 +451,13 @@ async function solveSelected() {
     return st?.state === 'done' && st.won === true;
   }).length;
   const failed = solveRunDays.value.length - won;
-  showToast(failed === 0 ? `Solved all ${ won } day${ won === 1 ? '' : 's' }.` : `Solved ${ won } of ${ solveRunDays.value.length } day${ solveRunDays.value.length === 1 ? '' : 's' }.`);
+  showToast(failed === 0
+    ? `Solved all ${ won } day${ won === 1
+      ? ''
+      : 's' }.`
+    : `Solved ${ won } of ${ solveRunDays.value.length } day${ solveRunDays.value.length === 1
+      ? ''
+      : 's' }.`);
 }
 
 function renderDay(day: number) {
@@ -423,7 +475,9 @@ function renderDay(day: number) {
   const puzzle = extract({ payload: entry.meta.payload, number: entry.meta.day, date: entry.meta.date });
   const playerName = partyName(puzzle.playerParty, puzzle);
   const bestScored = scorePartition(puzzle.optimumPartition, puzzle);
-  const solvedScored = entry.partArray ? scorePartition(entry.partArray, puzzle) : null;
+  const solvedScored = entry.partArray
+    ? scorePartition(entry.partArray, puzzle)
+    : null;
   rendered[ day ] = {
     partArray: entry.partArray,
     // No SVG title: the result card summary already shows day/date.

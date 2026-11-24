@@ -40,8 +40,12 @@ interface SolverState {
 // Validity (dev = 0) is deliberately NOT first: the search must be able
 // to record unbalanced winning states and rebalance them later.
 function better(a: SolverState, b: SolverState): boolean {
-  const ea = a.wins > a.oppMaxWins ? 1 : 0;
-  const eb = b.wins > b.oppMaxWins ? 1 : 0;
+  const ea = a.wins > a.oppMaxWins
+    ? 1
+    : 0;
+  const eb = b.wins > b.oppMaxWins
+    ? 1
+    : 0;
   if (ea !== eb) {
     return ea > eb;
   }
@@ -119,7 +123,9 @@ export function siteStyleSolve(
   const K = puzzle.regionCount;
   const size = puzzle.housesPerDistrict;
   const PP = puzzle.playerParty;
-  const tiles = [ ...puzzle.tiles.keys() ];
+  const tiles = [
+    ...puzzle.tiles.keys(),
+  ];
   const houses = tiles.filter((i) => isHouse(puzzle.tiles.get(i)));
   const rand = makeRng((Math.random() * 0x7FFFFFFF) | 0);
   const partLen = Math.max(...tiles) + 1;
@@ -144,7 +150,15 @@ export function siteStyleSolve(
       winners[ r ] = w.winner;
       margins[ r ] = w.margin;
     }
-    return recomputeAggregates({ partition, regionTiles, tallies, housesIn, winners, margins, dev } as SolverState);
+    return recomputeAggregates({
+      partition,
+      regionTiles,
+      tallies,
+      housesIn,
+      winners,
+      margins,
+      dev,
+    } as SolverState);
   }
 
   function recomputeAggregates(st: SolverState): SolverState {
@@ -291,7 +305,9 @@ export function siteStyleSolve(
         // A seed spec is one or more anchored districts (e.g. two player-
         // winning snakes); the remaining regions are seeded from houses
         // outside them.
-        const specs: number[][] = Array.isArray(seedDistrict[ 0 ]) ? (seedDistrict as number[][]) : [ seedDistrict as number[] ];
+        const specs: number[][] = Array.isArray(seedDistrict[ 0 ])
+          ? (seedDistrict as number[][])
+          : [ seedDistrict as number[] ];
         for (let si = 0; si < specs.length; si++) {
           for (const t of specs[ si ]) {
             partition[ t ] = si;
@@ -330,7 +346,9 @@ export function siteStyleSolve(
             continue;
           }
           const houseCands = candidates.filter((i) => isHouse(puzzle.tiles.get(i)));
-          const pool2 = houseCands.length > 0 ? houseCands : candidates;
+          const pool2 = houseCands.length > 0
+            ? houseCands
+            : candidates;
           const chosen = pool2[ Math.floor(rand() * pool2.length) ];
           partition[ chosen ] = r;
           regionTiles[ r ].push(chosen);
@@ -381,7 +399,9 @@ export function siteStyleSolve(
     if (list.length <= 1) {
       return false;
     }
-    const start = list[ 0 ] === t ? list[ 1 ] : list[ 0 ];
+    const start = list[ 0 ] === t
+      ? list[ 1 ]
+      : list[ 0 ];
     const seen = new Set([ start ]);
     const stack = [ start ];
     while (stack.length) {
@@ -542,7 +562,9 @@ export function siteStyleSolve(
     // bonus per tie.  (States track per-district winners; null = tie.)
     const tieCount = (state: SolverState): number => state.winners.filter((w) => w === null).length;
     const softScore = (dev: number, wins: number, oppMax: number, ties: number): number =>
-      dev * 3000 + (wins <= oppMax ? 12000 : 0) + oppMax * 400 - wins * 1500 - ties * 1500;
+      dev * 3000 + (wins <= oppMax
+        ? 12000
+        : 0) + oppMax * 400 - wins * 1500 - ties * 1500;
     let curTies = tieCount(cur);
     while (Date.now() < softDeadline) {
       iter++;
@@ -556,7 +578,9 @@ export function siteStyleSolve(
         const o = cur.partition[ t ];
         const tt = puzzle.tiles.get(t);
         if (o >= 0 && tt && tt.party !== null) {
-          const sRegs = [ ...new Set((adj.get(t) || []).map((n) => cur.partition[ n ]).filter((r) => r >= 0 && r !== o)) ];
+          const sRegs = [
+            ...new Set((adj.get(t) || []).map((n) => cur.partition[ n ]).filter((r) => r >= 0 && r !== o)),
+          ];
           if (sRegs.length > 0) {
             const s = sRegs[ Math.floor(rng() * sRegs.length) ];
             const candidates = cur.regionTiles[ s ].filter((u) => {
@@ -665,7 +689,9 @@ export function siteStyleSolve(
   let focusIdx = -1;
   let focusStalls = 0;
   const excludedSeeds = new Set();
-  const seedLowDev: number[] | null = seedDistricts ? Array.from<number>({ length: seedDistricts.length }).fill(Infinity) : null;
+  const seedLowDev: number[] | null = seedDistricts
+    ? Array.from<number>({ length: seedDistricts.length }).fill(Infinity)
+    : null;
 
   while (Date.now() < deadline) {
     restarts++;
@@ -676,7 +702,9 @@ export function siteStyleSolve(
         seedIdx = focusIdx;
       }
     }
-    const st0 = seedDistricts ? constructRandom(seedDistricts[ seedIdx ]) : constructRandom(null);
+    const st0 = seedDistricts
+      ? constructRandom(seedDistricts[ seedIdx ])
+      : constructRandom(null);
     if (!st0) {
       continue;
     }
@@ -826,5 +854,11 @@ export function siteStyleSolve(
       assign.set(t, r);
     }
   }
-  return { assign, wins: result.wins, maxOpp: result.oppMaxWins, dev: result.dev, restarts };
+  return {
+    assign,
+    wins: result.wins,
+    maxOpp: result.oppMaxWins,
+    dev: result.dev,
+    restarts,
+  };
 }

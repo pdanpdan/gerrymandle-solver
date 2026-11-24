@@ -155,7 +155,9 @@ export function fetchPuzzle(url: string): Promise<{ date: string; api: string; d
   const origin = deriveOrigin(url);
   const date = deriveDate(url);
   const api = `${ origin }/api/puzzle/gerry/${ date }`;
-  return fetch(api, { headers: { 'X-Dadel-User': 'solver' } }).then((res) => {
+  return fetch(api, {
+    headers: { 'X-Dadel-User': 'solver' },
+  }).then((res) => {
     if (!res.ok) {
       throw new Error(`API request failed: ${ api } -> HTTP ${ res.status }`);
     }
@@ -199,7 +201,9 @@ export function extract(data: Pick<ApiPuzzleData, 'payload'> & Partial<Pick<ApiP
 
 export function partyName(partyIndex: number, puzzle: Puzzle): string {
   const palIdx = puzzle.partyColours[ partyIndex ];
-  return PALETTE[ palIdx ] ? PALETTE[ palIdx ].name : `party${ partyIndex }`;
+  return PALETTE[ palIdx ]
+    ? PALETTE[ palIdx ].name
+    : `party${ partyIndex }`;
 }
 
 export function districtWinner(houseCounts: Record<number, number>): number | null {
@@ -246,7 +250,9 @@ export function scorePartition(partArray: (number | null)[], puzzle: Puzzle): Pa
   const results: { region: number; counts: Record<number, number>; winner: number | null; tileCount: number; }[] = [];
   let wins = 0;
   const oppWins: Record<number, number> = {};
-  for (const [ reg, r ] of [ ...regions.entries() ].sort((a, b) => a[ 0 ] - b[ 0 ])) {
+  for (const [ reg, r ] of [
+    ...regions.entries(),
+  ].sort((a, b) => a[ 0 ] - b[ 0 ])) {
     const winner = districtWinner(r.counts);
     if (winner !== null) {
       if (winner === playerParty) {
@@ -255,7 +261,12 @@ export function scorePartition(partArray: (number | null)[], puzzle: Puzzle): Pa
         oppWins[ winner as number ] = (oppWins[ winner as number ] || 0) + 1;
       }
     }
-    results.push({ region: reg, counts: r.counts, winner, tileCount: r.tiles.length });
+    results.push({
+      region: reg,
+      counts: r.counts,
+      winner,
+      tileCount: r.tiles.length,
+    });
   }
   let maxOppWins = 0;
   for (const v of Object.values(oppWins)) {
@@ -264,7 +275,12 @@ export function scorePartition(partArray: (number | null)[], puzzle: Puzzle): Pa
     }
   }
   const isStrictWin = wins > 0 && wins > maxOppWins;
-  return { results, wins, maxOppWins, isStrictWin };
+  return {
+    results,
+    wins,
+    maxOppWins,
+    isStrictWin,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -272,7 +288,9 @@ export function scorePartition(partArray: (number | null)[], puzzle: Puzzle): Pa
 // ---------------------------------------------------------------------------
 function hexCenter(col: number, row: number, size: number): { x: number; y: number; } {
   const w = size * Math.sqrt(3);
-  const x = col * w + (row % 2 === 1 ? w / 2 : 0) + w / 2;
+  const x = col * w + (row % 2 === 1
+    ? w / 2
+    : 0) + w / 2;
   const y = row * 1.5 * size + size;
   return { x, y };
 }
@@ -359,7 +377,9 @@ export function renderSVG(
       const winner = districtWinner(counts);
       if (winner !== null) {
         const pal = PALETTE[ puzzle.partyColours[ winner ] ];
-        regionWinners.set(reg, pal ? paleColor(pal.fill) : '#ffffff');
+        regionWinners.set(reg, pal
+          ? paleColor(pal.fill)
+          : '#ffffff');
       } else {
         regionWinners.set(reg, '#ffffff'); // white for ties
       }
@@ -379,7 +399,9 @@ export function renderSVG(
     let ty = 54;
     if (title) {
       const yDay = String(puzzle.day).padStart(3, '0');
-      const type = title.includes('best') ? 'best' : 'solv';
+      const type = title.includes('best')
+        ? 'best'
+        : 'solv';
       parts.push(
         `<text x="${ pad }" y="28" font-size="18" font-weight="bold" fill="${ web ? 'currentColor' : '#111827' }">Day ${ yDay } (${ puzzle.date }) - ${ puzzle.regionCount } distr - ${ type }</text>`,
       );
@@ -526,7 +548,9 @@ export function renderSVG(
       }
 
       borders.push(
-        `<line x1="${ a[ 0 ].toFixed(1) }" y1="${ a[ 1 ].toFixed(1) }" x2="${ b[ 0 ].toFixed(1) }" y2="${ b[ 1 ].toFixed(1) }" stroke="${ edgeColor }" stroke-width="${ edgeWidth }" stroke-linecap="round"${ web ? ` stroke-opacity="${ edgeOpacity }"` : '' }/>`,
+        `<line x1="${ a[ 0 ].toFixed(1) }" y1="${ a[ 1 ].toFixed(1) }" x2="${ b[ 0 ].toFixed(1) }" y2="${ b[ 1 ].toFixed(1) }" stroke="${ edgeColor }" stroke-width="${ edgeWidth }" stroke-linecap="round"${ web
+          ? ` stroke-opacity="${ edgeOpacity }"`
+          : '' }/>`,
       );
 
       // Extra white rim just outside the board outline for contrast.
@@ -550,6 +574,12 @@ export function renderSVG(
 }
 
 export function escapeXml(s: string): string {
-  const map: Record<string, string> = { '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' };
+  const map: Record<string, string> = {
+    '<': '&lt;',
+    '>': '&gt;',
+    '&': '&amp;',
+    "'": '&apos;',
+    '"': '&quot;',
+  };
   return String(s).replace(/[<>&'"]/g, (c) => map[ c ] || c);
 }

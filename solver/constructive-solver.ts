@@ -124,7 +124,9 @@ export function collectSeedDistricts(
     // BFS distances from each anchor house, used to grow toward the others.
     const distFrom: Map<number, Map<number, number>> = new Map();
     for (const h of group) {
-      const dd: Map<number, number> = new Map([ [ h, 0 ] ]);
+      const dd: Map<number, number> = new Map([
+        [ h, 0 ],
+      ]);
       const q: number[] = [ h ];
       let head = 0;
       while (head < q.length) {
@@ -232,7 +234,11 @@ export function collectSeedDistricts(
       const order: number[] = [ ...frontierTiles ].sort(
         (a: number, b: number) =>
           distScore(a) - distScore(b)
-          || (isHouse(puzzle.tiles.get(a)) ? 0 : 1) - (isHouse(puzzle.tiles.get(b)) ? 0 : 1),
+          || (isHouse(puzzle.tiles.get(a))
+            ? 0
+            : 1) - (isHouse(puzzle.tiles.get(b))
+            ? 0
+            : 1),
       );
       for (const t of order) {
         if (!inFrontier.has(t)) {
@@ -332,7 +338,9 @@ export function collectSeedDistricts(
     }
     let span = 0;
     for (let i = 0; i < group.length; i++) {
-      const dist: Map<number, number> = new Map([ [ group[ i ], 0 ] ]);
+      const dist: Map<number, number> = new Map([
+        [ group[ i ], 0 ],
+      ]);
       const frontier: number[] = [ group[ i ] ];
       let head = 0;
       while (head < frontier.length) {
@@ -352,7 +360,9 @@ export function collectSeedDistricts(
     return span;
   }
 
-  const comps = [ ...compositions(W, minWin, size, playerHouses.length, []) ]
+  const comps = [
+    ...compositions(W, minWin, size, playerHouses.length, []),
+  ]
     .sort((a: number[], b: number[]) => a.reduce((x: number, y: number) => x + y, 0) - b.reduce((x: number, y: number) => x + y, 0));
 
   const seeds: Set<number>[] = [];

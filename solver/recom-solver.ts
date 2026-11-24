@@ -51,8 +51,12 @@ function calculateScore(dev: number, partyWins: Record<number, number>, playerWa
     }
   }
   const margin: number = playerWins - maxOppWins;
-  const electionWon: number = margin > 0 ? 1 : 0;
-  const electionPenalty: number = electionWon ? 0 : (1 - margin) * 3000;
+  const electionWon: number = margin > 0
+    ? 1
+    : 0;
+  const electionPenalty: number = electionWon
+    ? 0
+    : (1 - margin) * 3000;
 
   return (dev * dev) * 2000
     + electionPenalty
@@ -121,7 +125,9 @@ function initialPartition(puzzle: Puzzle, rand: () => number, seedHints: number[
     }
   }
   while (seeds.length < K) {
-    const idx = [ ...puzzle.tiles.keys() ][ Math.floor(rand() * puzzle.tiles.size) ];
+    const idx = [
+      ...puzzle.tiles.keys(),
+    ][ Math.floor(rand() * puzzle.tiles.size) ];
     if (!seeds.includes(idx)) {
       seeds.push(idx);
     }
@@ -144,7 +150,12 @@ function initialPartition(puzzle: Puzzle, rand: () => number, seedHints: number[
         for (const n of (adj.get(cur) || [])) {
           if (!assign.has(n) && !seen.has(n)) {
             seen.add(n);
-            candidates.push({ idx: n, isH: isHouse(puzzle.tiles.get(n)) ? 0 : 1 });
+            candidates.push({
+              idx: n,
+              isH: isHouse(puzzle.tiles.get(n))
+                ? 0
+                : 1,
+            });
           }
         }
       }
@@ -201,7 +212,11 @@ function randomSpanningTree(tileSet: Set<number>, _puzzle: Puzzle, adj: Map<numb
     for (const v of (adj.get(u) || [])) {
       if (u < v && nodeSet.has(v)) {
         // Pure uniform random weights - Allows "tentacles" through empty tiles
-        edges.push({ u, v, w: rand() });
+        edges.push({
+          u,
+          v,
+          w: rand(),
+        });
       }
     }
   }
@@ -270,7 +285,9 @@ function dfsTree(tree: Map<number, number[]>, root: number, puzzle: Puzzle): { p
 
   const sub: Map<number, number> = new Map();
   for (const u of order.reverse()) {
-    let cnt = isHouse(puzzle.tiles.get(u)) ? 1 : 0;
+    let cnt = isHouse(puzzle.tiles.get(u))
+      ? 1
+      : 0;
     for (const v of (tree.get(u) || [])) {
       if (v === parent.get(u)) {
         continue;
@@ -292,7 +309,9 @@ function dfsTree(tree: Map<number, number[]>, root: number, puzzle: Puzzle): { p
 function subtreePartyCounts(tree: Map<number, number[]>, parent: Map<number, number | null>, puzzle: Puzzle): Map<number, Map<number, number>> {
   const order: number[] = [];
   const stack: number[] = [];
-  const root = [ ...tree.keys() ][ 0 ];
+  const root = [
+    ...tree.keys(),
+  ][ 0 ];
   if (root === undefined) {
     return new Map();
   }
@@ -477,7 +496,12 @@ function tryTieDistrict(puzzle: Puzzle, assign: Map<number, number>, adj: Map<nu
   }
 
   const snapshot = (): [ number, number[] ][] =>
-    [ ...distSets.entries() ].map(([ d, set ]) => [ d, [ ...set ] ] as [ number, number[] ]);
+    [
+      ...distSets.entries(),
+    ].map(([ d, set ]) => [
+      d,
+      [ ...set ],
+    ] as [ number, number[] ]);
 
   const restore = (snap: [ number, number[] ][]): void => {
     distSets.clear();
@@ -555,7 +579,12 @@ function tryTieDistrict(puzzle: Puzzle, assign: Map<number, number>, adj: Map<nu
   // Shortest district paths from `from` to `to` (BFS, depth-capped).
   const districtPaths = (from: number, to: number): number[][] => {
     const out: number[][] = [];
-    const queue: { d: number; path: number[]; }[] = [ { d: from, path: [ from ] } ];
+    const queue: { d: number; path: number[]; }[] = [
+      {
+        d: from,
+        path: [ from ],
+      },
+    ];
     while (queue.length > 0) {
       const { d, path } = queue.shift()!;
       if (d === to) {
@@ -570,7 +599,10 @@ function tryTieDistrict(puzzle: Puzzle, assign: Map<number, number>, adj: Map<nu
       }
       for (const n of dAdj.get(d) || []) {
         if (!path.includes(n)) {
-          queue.push({ d: n, path: [ ...path, n ] });
+          queue.push({
+            d: n,
+            path: [ ...path, n ],
+          });
         }
       }
     }
@@ -593,7 +625,10 @@ function tryTieDistrict(puzzle: Puzzle, assign: Map<number, number>, adj: Map<nu
     for (const [ d, set ] of distSets) {
       const st = districtStats(set, puzzle);
       if (st.winner !== null && st.winner !== PP) {
-        opps.push({ d, margin: marginOf(set) });
+        opps.push({
+          d,
+          margin: marginOf(set),
+        });
       }
     }
     opps.sort((a, b) => a.margin - b.margin);
@@ -639,7 +674,9 @@ function tryTieDistrict(puzzle: Puzzle, assign: Map<number, number>, adj: Map<nu
   }
 
   const { playerWins, maxOpp } = electionOf();
-  return playerWins > 0 && playerWins > maxOpp ? assign : null;
+  return playerWins > 0 && playerWins > maxOpp
+    ? assign
+    : null;
 }
 
 /**
@@ -680,9 +717,13 @@ export function solve(
   const theoreticalMax = Math.min(puzzle.regionCount, Math.floor(playerHouses / minWin));
 
   const spatialMax = Math.min(feasibleMax, theoreticalMax);
-  const rawTarget = maxGoalHint !== null ? maxGoalHint : puzzle.regionCount;
+  const rawTarget = maxGoalHint !== null
+    ? maxGoalHint
+    : puzzle.regionCount;
   // Never drive target to 0: spatial analysis is a lower bound, not exact
-  const targetWins = spatialMax > 0 ? Math.min(rawTarget, spatialMax) : Math.max(rawTarget, 1);
+  const targetWins = spatialMax > 0
+    ? Math.min(rawTarget, spatialMax)
+    : Math.max(rawTarget, 1);
 
   if (debug && seed === 1) {
     const msg = `[DEBUG] Spatial feasibility: at most ${ spatialMax } winning districts (theoretical ${ theoreticalMax }, feasible ${ feasibleMax })`;
@@ -691,7 +732,9 @@ export function solve(
 
   const adj = buildAdjacency(puzzle);
   const size = puzzle.housesPerDistrict;
-  const rand = seed !== null ? makeRng(seed) : Math.random;
+  const rand = seed !== null
+    ? makeRng(seed)
+    : Math.random;
 
   let assign: Map<number, number> = initialPartition(puzzle, rand, seedCores);
 
@@ -732,11 +775,15 @@ export function solve(
         const msg = `[DEBUG] Anchored seeds: ${ seeds.length } candidate district(s) in ${ Date.now() - constructiveStart }ms`;
         (reporter || console.log)(msg);
       }
-      const cRes = siteStyleSolve(puzzle, Math.max(2000, constructiveBudgetMs - (Date.now() - constructiveStart)), constructiveW, seeds.length > 0 ? seeds.map((s) => [ ...s ]) : null);
+      const cRes = siteStyleSolve(puzzle, Math.max(2000, constructiveBudgetMs - (Date.now() - constructiveStart)), constructiveW, seeds.length > 0
+        ? seeds.map((s) => [ ...s ])
+        : null);
       if (cRes && cRes.wins > 0) {
         constructiveBest = cRes;
         if (debug && seed === 1) {
-          const msg = `[DEBUG] Constructive solver: ${ cRes.wins } win(s) in ${ Date.now() - constructiveStart }ms (dev ${ cRes.dev })${ cRes.wins > cRes.maxOpp ? ' (strict)' : ' (not strict)' }`;
+          const msg = `[DEBUG] Constructive solver: ${ cRes.wins } win(s) in ${ Date.now() - constructiveStart }ms (dev ${ cRes.dev })${ cRes.wins > cRes.maxOpp
+            ? ' (strict)'
+            : ' (not strict)' }`;
           (reporter || console.log)(msg);
         }
         // A strict win at or above target finishes immediately.
@@ -865,7 +912,13 @@ export function solve(
         bestGlobalOpponentWasted = greedyOpponentWasted;
 
         if (greedyWins >= targetWins) {
-          return { partArray: buildPartArray(greedyAssign, puzzle), wins: greedyWins, goal: targetWins, timedOut: false, isStrictWin: true };
+          return {
+            partArray: buildPartArray(greedyAssign, puzzle),
+            wins: greedyWins,
+            goal: targetWins,
+            timedOut: false,
+            isStrictWin: true,
+          };
         }
       }
     } catch { /* fall through to random */ }
@@ -911,7 +964,13 @@ export function solve(
       bestGlobalPlayerWasted = currentPlayerWasted;
       bestGlobalOpponentWasted = currentOpponentWasted;
       if (initWins >= targetWins) {
-        return { partArray: buildPartArray(bestGlobalAssign, puzzle), wins: initWins, goal: targetWins, timedOut: false, isStrictWin: true };
+        return {
+          partArray: buildPartArray(bestGlobalAssign, puzzle),
+          wins: initWins,
+          goal: targetWins,
+          timedOut: false,
+          isStrictWin: true,
+        };
       }
     } else if (currentDev === 0 && initWins > 0
       && (initWins > bestNonStrictWins
@@ -957,7 +1016,9 @@ export function solve(
 
     if (iterationCounter % 100000 === 0 && reporter) {
       if (debug) {
-        const msg = `[DEBUG] Active ReCom: iteration ${ iterationCounter } | Temp: ${ T.toFixed(1) } | Best Strict Wins: ${ bestGlobalWins === -1 ? 0 : bestGlobalWins }/${ targetWins }`;
+        const msg = `[DEBUG] Active ReCom: iteration ${ iterationCounter } | Temp: ${ T.toFixed(1) } | Best Strict Wins: ${ bestGlobalWins === -1
+          ? 0
+          : bestGlobalWins }/${ targetWins }`;
         reporter(msg);
       } else {
         reporter({ dot: 1 });
@@ -1033,7 +1094,9 @@ export function solve(
       continue;
     }
 
-    const ids = [ ...distSets.keys() ];
+    const ids = [
+      ...distSets.keys(),
+    ];
 
     // Biased merge: with ~40% probability, target a district where the player
     // wastes votes (inefficient win) or an opponent has a big-but-thin win.
@@ -1044,7 +1107,9 @@ export function solve(
         const st = districtStats(set, puzzle);
         const wastedScore = st.winner === puzzle.playerParty
           ? st.playerWasted // want to fix player-inefficient districts
-          : (st.winner !== null ? -st.opponentWasted : 0); // want to pack opponent districts
+          : (st.winner !== null
+            ? -st.opponentWasted
+            : 0); // want to pack opponent districts
         return { id, wastedScore };
       });
       scored.sort((x, y) => y.wastedScore - x.wastedScore);
@@ -1054,7 +1119,9 @@ export function solve(
     } else {
       a = ids[ Math.floor(rand() * ids.length) ];
     }
-    const nb = [ ...(distAdj.get(a) || []) ];
+    const nb = [
+      ...(distAdj.get(a) || []),
+    ];
     if (nb.length === 0) {
       consecutiveNoCuts++;
       continue;
@@ -1116,7 +1183,10 @@ export function solve(
 
     const setA = distSets.get(a)!;
     const setB = distSets.get(b)!;
-    const merged = new Set([ ...setA, ...setB ]);
+    const merged = new Set([
+      ...setA,
+      ...setB,
+    ]);
     const oldA = districtStats(setA, puzzle);
     const oldB = districtStats(setB, puzzle);
     const oldPairDev = oldA.dev + oldB.dev;
@@ -1178,7 +1248,9 @@ export function solve(
           if (total !== size) {
             continue;
           }
-          const sorted = [ ...cnt.values() ].sort((x, y) => y - x);
+          const sorted = [
+            ...cnt.values(),
+          ].sort((x, y) => y - x);
           // Exact tie: the two leading parties are level (and beat the rest).
           if (sorted.length >= 2 && sorted[ 0 ] === sorted[ 1 ] && (sorted[ 2 ] ?? -1) < sorted[ 0 ]) {
             tieCuts.push(u);
@@ -1368,7 +1440,13 @@ export function solve(
         isStrictWin: false,
       };
     }
-    return { partArray: null, wins: 0, goal: targetWins, timedOut: true, isStrictWin: false };
+    return {
+      partArray: null,
+      wins: 0,
+      goal: targetWins,
+      timedOut: true,
+      isStrictWin: false,
+    };
   }
 
   const finalAssign = bestGlobalAssign!;
@@ -1384,5 +1462,11 @@ export function solve(
 
   const finalWins = countWins(finalDistSets.values(), puzzle);
   const isStrictWin = finalWins > 0 && bestGlobalWins > bestGlobalMaxOppWins;
-  return { partArray, wins: finalWins, goal: targetWins, timedOut: Date.now() >= deadline && finalWins < targetWins, isStrictWin };
+  return {
+    partArray,
+    wins: finalWins,
+    goal: targetWins,
+    timedOut: Date.now() >= deadline && finalWins < targetWins,
+    isStrictWin,
+  };
 }

@@ -30,7 +30,9 @@ export async function loadAllPuzzles(): Promise<PuzzleMeta[]> {
     const entries = await Promise.all(days.map(async (day) => {
       const date = addDays(DAY_ONE, day - 1);
       const data = await probeDay(date);
-      return data ? { day, date, payload: data.payload } as PuzzleMeta : null;
+      return data
+        ? { day, date, payload: data.payload } as PuzzleMeta
+        : null;
     }));
     return entries.filter((e): e is PuzzleMeta => e !== null);
   }

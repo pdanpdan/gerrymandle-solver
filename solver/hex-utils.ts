@@ -60,8 +60,22 @@ export interface SolveResult {
 // ---------------------------------------------------------------------------
 // Hex grid (odd-r layout, matching the game)
 // ---------------------------------------------------------------------------
-const NEIGHBORS_EVEN = [ [ -1, 0 ], [ 1, 0 ], [ -1, -1 ], [ 0, -1 ], [ -1, 1 ], [ 0, 1 ] ];
-const NEIGHBORS_ODD = [ [ -1, 0 ], [ 1, 0 ], [ 0, -1 ], [ 1, -1 ], [ 0, 1 ], [ 1, 1 ] ];
+const NEIGHBORS_EVEN = [
+  [ -1, 0 ],
+  [ 1, 0 ],
+  [ -1, -1 ],
+  [ 0, -1 ],
+  [ -1, 1 ],
+  [ 0, 1 ],
+];
+const NEIGHBORS_ODD = [
+  [ -1, 0 ],
+  [ 1, 0 ],
+  [ 0, -1 ],
+  [ 1, -1 ],
+  [ 0, 1 ],
+  [ 1, 1 ],
+];
 /**
  * Get the neighbor indices of a hex tile in odd-r layout.
  * @param {number} idx - tile index
@@ -72,7 +86,9 @@ export function neighborsOf(idx: number, puzzle: Puzzle): number[] {
   const { width: W, height: H, tiles } = puzzle;
   const col = idx % W;
   const row = Math.floor(idx / W);
-  const deltas = row % 2 === 0 ? NEIGHBORS_EVEN : NEIGHBORS_ODD;
+  const deltas = row % 2 === 0
+    ? NEIGHBORS_EVEN
+    : NEIGHBORS_ODD;
   const out = [];
   for (const [ dc, dr ] of deltas) {
     const nc = col + dc;
@@ -170,7 +186,9 @@ export function districtStats(tileSet: Set<number>, puzzle: Puzzle): DistrictSta
     wnr = null;
   }
 
-  const isWin = (wnr === playerParty) ? 1 : 0;
+  const isWin = (wnr === playerParty)
+    ? 1
+    : 0;
   const playerVotes = cnt[ playerParty ] || 0;
   const minWin = Math.floor(houses / puzzle.partyCount) + 1;
 
@@ -190,7 +208,14 @@ export function districtStats(tileSet: Set<number>, puzzle: Puzzle): DistrictSta
   }
 
   const dev = Math.abs(houses - size);
-  return { houses, winner: wnr, isWin, playerWasted, opponentWasted, dev };
+  return {
+    houses,
+    winner: wnr,
+    isWin,
+    playerWasted,
+    opponentWasted,
+    dev,
+  };
 }
 
 export function countWins(districtSets: Iterable<Set<number>>, puzzle: Puzzle): number {
@@ -293,7 +318,10 @@ export function analyzePlayerClusters(puzzle: Puzzle): ClusterResult {
   }
   const feasible = cliques.length;
 
-  return { feasibleMax: Math.min(feasible, theoreticalMax), cores: [] };
+  return {
+    feasibleMax: Math.min(feasible, theoreticalMax),
+    cores: [],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -333,12 +361,22 @@ export function greedySolve(puzzle: Puzzle): Map<number, number> {
     let done = false;
     while (head < frontier.length && !done) {
       const u = frontier[ head++ ];
-      const nbs: number[] = [ ...(adj.get(u) || []) ].filter((v: number) => !visited.has(v) && !used.has(v));
+      const nbs: number[] = [
+        ...(adj.get(u) || []),
+      ].filter((v: number) => !visited.has(v) && !used.has(v));
       nbs.sort((a, b) => {
         const ta = puzzle.tiles.get(a);
         const tb = puzzle.tiles.get(b);
-        const aP = ta?.party === playerParty ? 0 : ta?.party !== null ? 1 : 2;
-        const bP = tb?.party === playerParty ? 0 : tb?.party !== null ? 1 : 2;
+        const aP = ta?.party === playerParty
+          ? 0
+          : ta?.party !== null
+            ? 1
+            : 2;
+        const bP = tb?.party === playerParty
+          ? 0
+          : tb?.party !== null
+            ? 1
+            : 2;
         return aP - bP;
       });
       for (const v of nbs) {
@@ -437,13 +475,19 @@ export function greedySolve(puzzle: Puzzle): Map<number, number> {
 
       while (hd < f.length && houseCount < housesPer) {
         const u = f[ hd++ ];
-        const nbs = [ ...(adj.get(u) || []) ].filter((nb) =>
+        const nbs = [
+          ...(adj.get(u) || []),
+        ].filter((nb) =>
           !used.has(nb) && !v.has(nb) && comp.includes(nb),
         );
         nbs.sort((a, b) => {
           const ta = puzzle.tiles.get(a);
           const tb = puzzle.tiles.get(b);
-          return (ta?.party != null ? 0 : 1) - (tb?.party != null ? 0 : 1);
+          return (ta?.party != null
+            ? 0
+            : 1) - (tb?.party != null
+            ? 0
+            : 1);
         });
         for (const nb of nbs) {
           if (houseCount >= housesPer) {
