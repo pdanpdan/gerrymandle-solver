@@ -595,9 +595,12 @@ function onResultToggle(day: number, e: Event) {
 }
 
 // Open the day's result card and scroll it into view (the day-list button).
+// The collapse animation is given time to expand first: on a short list the
+// document grows as the card opens, and scrolling before that stops short.
 async function scrollToResult(day: number) {
   openResults.add(day);
   await nextTick();
+  await new Promise((resolve) => setTimeout(resolve, 300));
   document.getElementById(`result-day-${ day }`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
